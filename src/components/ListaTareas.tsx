@@ -161,7 +161,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
               type="button"
               onClick={() => eliminar(t.id)}
               aria-label="Borrar tarea"
-              className="shrink-0 text-neutral-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+              className="shrink-0 text-neutral-800 transition-colors hover:text-red-400"
             >
               <svg
                 viewBox="0 0 24 24"

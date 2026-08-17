@@ -39,7 +39,7 @@ async function tipoSugerido(supabase: Supa, fecha: string): Promise<TipoDia> {
 function ajustarBloque1(
   titulo: string,
   categoria: string,
-  fecha: string
+  fecha: string,
 ): { titulo: string; categoria: string } {
   if (!titulo.startsWith("Bloque 1")) {
     return { titulo, categoria };
@@ -63,7 +63,7 @@ export async function generarTareas(
   supabase: Supa,
   dia: Dia,
   userId: string,
-  settings: Settings | null
+  settings: Settings | null,
 ) {
   if (!dia.template_id) return;
 
@@ -86,7 +86,7 @@ export async function generarTareas(
 
   const mostrarBellaface = tocaBellaface(
     settings?.bellaface_inicio ?? null,
-    dia.fecha
+    dia.fecha,
   );
 
   const filas = plantilla
@@ -175,6 +175,7 @@ export async function obtenerDia(fecha: string): Promise<{
     .from("day_tasks")
     .select("*")
     .eq("day_id", dia.id)
+    .order("hora", { ascending: true, nullsFirst: false })
     .order("orden");
 
   return {
