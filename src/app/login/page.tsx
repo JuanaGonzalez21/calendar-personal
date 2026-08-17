@@ -6,7 +6,7 @@ import { login, type EstadoLogin } from "./actions";
 export default function LoginPage() {
   const [estado, formAction, pendiente] = useActionState<EstadoLogin, FormData>(
     login,
-    null
+    null,
   );
 
   return (
@@ -35,6 +35,7 @@ export default function LoginPage() {
               type="email"
               required
               autoComplete="email"
+              defaultValue="juana.gonzalez.dev@gmail.com"
               className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 outline-none transition-colors placeholder:text-neutral-600 focus:border-lime-400"
               placeholder="tu@correo.com"
             />

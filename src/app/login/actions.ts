@@ -27,10 +27,12 @@ export async function login(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    // Mensaje genérico a propósito: no revelamos si el email existe.
-    return { error: "Credenciales inválidas." };
+if (error) {
+  if (process.env.NODE_ENV === "development") {
+    console.error("[auth]", error.message, error.status);
   }
+  return { error: "Credenciales inválidas." };
+}
 
   revalidatePath("/", "layout");
   redirect("/");
