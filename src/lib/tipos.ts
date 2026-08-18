@@ -48,6 +48,74 @@ export interface Settings {
   umbral_parcial: number;
 }
 
+/* ---------------------------- POSTULACIONES ---------------------------- */
+
+export type Fase =
+  | "entregada"
+  | "entrevista_rrhh"
+  | "prueba_tecnica"
+  | "propuesta";
+
+export type EstadoProceso = "en_proceso" | "cerrada" | "sin_respuesta";
+
+export interface Postulacion {
+  id: string;
+  empresa: string;
+  cargo: string | null;
+  fuente: string | null;
+  url: string | null;
+  fecha: string;
+  fase: Fase;
+  estado: EstadoProceso;
+  ultimo_movimiento: string;
+  nota: string | null;
+}
+
+export const NOMBRE_FASE: Record<Fase, string> = {
+  entregada: "Hoja de vida entregada",
+  entrevista_rrhh: "Entrevista RRHH",
+  prueba_tecnica: "Prueba técnica",
+  propuesta: "Propuesta laboral",
+};
+
+export const FASE_CORTA: Record<Fase, string> = {
+  entregada: "HV",
+  entrevista_rrhh: "RRHH",
+  prueba_tecnica: "Prueba",
+  propuesta: "Propuesta",
+};
+
+export const ORDEN_FASES: Fase[] = [
+  "entregada",
+  "entrevista_rrhh",
+  "prueba_tecnica",
+  "propuesta",
+];
+
+export const NOMBRE_ESTADO: Record<EstadoProceso, string> = {
+  en_proceso: "En proceso",
+  cerrada: "Cerrada",
+  sin_respuesta: "Sin respuesta",
+};
+
+/* ------------------------------- CURSOS -------------------------------- */
+
+export interface Curso {
+  id: string;
+  nombre: string;
+  plataforma: string | null;
+  url: string | null;
+  prioridad: number;
+  activo: boolean;
+}
+
+export interface CursoConTiempo extends Curso {
+  minutosTotal: number;
+  minutosSemana: number;
+}
+
+/* ------------------------------- COLORES ------------------------------- */
+
 export const NOMBRE_TIPO: Record<TipoDia, string> = {
   A_cocina: "Cocina",
   B_gym: "Gym",
@@ -66,3 +134,13 @@ export const COLOR_CATEGORIA: Record<Categoria, string> = {
   salidas: "bg-teal-400",
   otros: "bg-neutral-600",
 };
+
+/** Formatea minutos como "3 h 20 min". */
+export function formatoTiempo(minutos: number): string {
+  if (minutos <= 0) return "0 min";
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} h`;
+  return `${h} h ${m} min`;
+}
