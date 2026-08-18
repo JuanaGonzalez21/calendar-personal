@@ -20,7 +20,7 @@ export function hoyBogota(): string {
   }).format(new Date());
 }
 
-/** Hora actual en Bogotá, formato HH:MM. */
+/** Hora actual en Bogotá, formato HH:MM (24h, para comparar). */
 export function horaBogota(): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: TZ,
@@ -64,6 +64,17 @@ export function formatoLargo(fecha: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
+/** "17 ago" — versión corta para pantallas angostas. */
+export function formatoCorto(fecha: string): string {
+  const [y, m, d] = fecha.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "UTC",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
 /** Suma minutos a una hora "HH:MM" o "HH:MM:SS". Devuelve "HH:MM". */
 export function sumarMinutos(hora: string, minutos: number): string {
   const [h, m] = hora.split(":").map(Number);
@@ -80,15 +91,31 @@ export function soloHoraMinuto(hora: string | null): string | null {
 }
 
 /**
+ * Formato de 12 horas con símbolo en vez de AM/PM.
+ *   "09:30" → { texto: "9:30", icono: "☀" }
+ *   "18:30" → { texto: "6:30", icono: "☾" }
+ * El sol es AM, la luna es PM. Ocupa menos que "a. m." y se lee de un vistazo.
+ */
+export function hora12(hora: string | null): {
+  texto: string;
+  icono: string;
+} | null {
+  if (!hora) return null;
+  const [h, m] = hora.split(":").map(Number);
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return {
+    texto: `${h12}:${String(m).padStart(2, "0")}`,
+    icono: h < 12 ? "☀" : "☾",
+  };
+}
+
+/**
  * ¿Toca Bellaface hoy?
  * Ciclo de 28 días: 21 con pastilla + 7 de reposo.
  * Si no hay fecha de inicio configurada, asumimos que sí toca
  * (mejor mostrarla de más que ocultarla de menos).
  */
-export function tocaBellaface(
-  inicio: string | null,
-  fecha: string
-): boolean {
+export function tocaBellaface(inicio: string | null, fecha: string): boolean {
   if (!inicio) return true;
   const dias = diasEntre(inicio, fecha);
   if (dias < 0) return true;

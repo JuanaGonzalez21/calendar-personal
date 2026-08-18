@@ -1,5 +1,5 @@
 import { obtenerDia } from "@/lib/dia";
-import { formatoLargo, hoyBogota, horaBogota } from "@/lib/fechas";
+import { formatoLargo, hoyBogota, horaBogota, hora12 } from "@/lib/fechas";
 import { NOMBRE_TIPO } from "@/lib/tipos";
 import ListaTareas from "@/components/ListaTareas";
 import ControlesDia from "@/components/ControlesDia";
@@ -9,11 +9,12 @@ export const dynamic = "force-dynamic";
 export default async function Hoy() {
   const fecha = hoyBogota();
   const hora = horaBogota();
+  const ahora = hora12(hora);
   const { dia, tareas } = await obtenerDia(fecha);
 
   if (!dia) {
     return (
-      <main className="mx-auto w-full max-w-lg overflow-x-hidden px-4 py-10 pb-24">
+      <main className="mx-auto max-w-lg px-4 py-16">
         <p className="text-neutral-400">
           No se pudo cargar el día. Recarga la página.
         </p>
@@ -33,36 +34,43 @@ export default async function Hoy() {
   const minimoCumplido = minimos.length > 0 && minimosHechos === minimos.length;
 
   return (
-    <main className="mx-auto max-w-lg px-5 py-10 pb-24">
+    <main
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      style={{
+        paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
+      }}
+    >
       <header className="mb-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500">
             {formatoLargo(fecha)}
           </p>
-          <p className="font-mono text-xs text-neutral-600">{hora}</p>
+          <p className="shrink-0 font-mono text-[11px] text-neutral-600">
+            {ahora?.texto} {ahora?.icono}
+          </p>
         </div>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-100">
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-neutral-100">
           Día {NOMBRE_TIPO[dia.tipo]}
         </h1>
       </header>
 
       {/* Progreso */}
       <section className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-wider text-neutral-500">
-              Progreso del día
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+              Progreso
             </p>
-            <p className="mt-1 text-2xl font-semibold text-neutral-100">
+            <p className="mt-0.5 text-2xl font-semibold text-neutral-100">
               {pct}%
             </p>
           </div>
-          <div className="text-right">
-            <p className="font-mono text-xs uppercase tracking-wider text-neutral-500">
+          <div className="min-w-0 text-right">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
               Mínimo viable
             </p>
             <p
-              className={`mt-1 text-sm font-medium ${
+              className={`mt-0.5 text-sm font-medium ${
                 minimoCumplido ? "text-lime-400" : "text-neutral-300"
               }`}
             >
@@ -96,7 +104,7 @@ export default async function Hoy() {
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="text-xs text-neutral-700 transition-colors hover:text-neutral-500"
+            className="text-xs text-neutral-700 transition-colors active:text-neutral-500"
           >
             Cerrar sesión
           </button>

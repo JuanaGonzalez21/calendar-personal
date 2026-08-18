@@ -11,20 +11,29 @@
   --color-foreground: var(--foreground);
 }
 
-html {
+html,
+body {
   background: var(--background);
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Evita que iOS agrande el texto al rotar el teléfono */
+  -webkit-text-size-adjust: 100%;
 }
 
-/* El input de hora nativo se ve claro por defecto */
+/* El selector de hora nativo sale claro por defecto */
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   opacity: 0.4;
   cursor: pointer;
+}
+
+/* Quita el resaltado azul al tocar en iOS */
+* {
+  -webkit-tap-highlight-color: transparent;
 }

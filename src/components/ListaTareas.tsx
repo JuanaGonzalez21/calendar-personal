@@ -8,7 +8,7 @@ import {
   agregarTarea,
 } from "@/app/acciones";
 import { COLOR_CATEGORIA, type Tarea } from "@/lib/tipos";
-import { soloHoraMinuto } from "@/lib/fechas";
+import { soloHoraMinuto, hora12 } from "@/lib/fechas";
 
 interface Props {
   tareas: Tarea[];
@@ -16,7 +16,6 @@ interface Props {
   horaActual: string;
 }
 
-/** Spinner reutilizable. */
 function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
@@ -89,9 +88,10 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="w-full space-y-1.5">
       {optimistas.map((t) => {
         const hora = soloHoraMinuto(t.hora);
+        const h12 = hora12(hora);
         const esPasada = hora !== null && hora < horaActual && !t.hecha;
         const seEstaBorrando = borrando.has(t.id);
         const preguntando = porBorrar === t.id;
@@ -99,7 +99,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
         return (
           <div
             key={t.id}
-            className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-300 ${
+            className={`flex w-full items-center gap-2 rounded-xl border px-2 py-2.5 transition-all duration-300 ${
               preguntando
                 ? "border-red-900/70 bg-red-950/20"
                 : t.hecha
@@ -112,31 +112,26 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
             }`}
           >
             {preguntando ? (
-              /* ---------- Modo confirmación ---------- */
               <>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-neutral-300">
-                    ¿Borrar{" "}
-                    <span className="text-neutral-100">{t.titulo}</span>?
-                  </p>
-                </div>
+                <p className="min-w-0 flex-1 truncate pl-1 text-sm text-neutral-300">
+                  ¿Borrar?
+                </p>
                 <button
                   type="button"
                   onClick={() => setPorBorrar(null)}
-                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors active:bg-neutral-800"
+                  className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm text-neutral-400 transition-colors active:bg-neutral-800"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={() => confirmarBorrado(t.id)}
-                  className="shrink-0 rounded-lg bg-red-500/90 px-3 py-1.5 text-sm font-medium text-white transition-colors active:bg-red-600"
+                  className="shrink-0 rounded-lg bg-red-500/90 px-2.5 py-1.5 text-sm font-medium text-white transition-colors active:bg-red-600"
                 >
                   Borrar
                 </button>
               </>
             ) : (
-              /* ---------- Modo normal ---------- */
               <>
                 <button
                   type="button"
@@ -164,7 +159,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
                 </button>
 
                 <span
-                  className={`h-8 w-1 shrink-0 rounded-full ${
+                  className={`h-8 w-[3px] shrink-0 rounded-full ${
                     COLOR_CATEGORIA[t.categoria]
                   } ${t.hecha ? "opacity-30" : ""}`}
                 />
@@ -179,7 +174,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
                   >
                     {t.titulo}
                     {t.es_minimo && !t.hecha && (
-                      <span className="ml-1.5 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">
+                      <span className="ml-1.5 rounded bg-neutral-800 px-1 py-0.5 font-mono text-[10px] text-neutral-400">
                         mín
                       </span>
                     )}
@@ -199,20 +194,17 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
                     onBlur={(e) => guardarHora(t.id, e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        guardarHora(
-                          t.id,
-                          (e.target as HTMLInputElement).value
-                        );
+                        guardarHora(t.id, (e.target as HTMLInputElement).value);
                       }
                       if (e.key === "Escape") setEditando(null);
                     }}
-                    className="w-[86px] shrink-0 rounded-lg border border-lime-400 bg-neutral-950 px-1.5 py-1 text-sm text-neutral-100 outline-none"
+                    className="w-[78px] shrink-0 rounded-lg border border-lime-400 bg-neutral-950 px-1 py-1 text-xs text-neutral-100 outline-none"
                   />
                 ) : (
                   <button
                     type="button"
                     onClick={() => setEditando(t.id)}
-                    className={`shrink-0 rounded-lg px-1.5 py-1 font-mono text-sm transition-colors active:bg-neutral-800 ${
+                    className={`shrink-0 rounded-lg px-1 py-1 text-right font-mono text-[13px] leading-tight transition-colors active:bg-neutral-800 ${
                       t.hecha
                         ? "text-neutral-700"
                         : esPasada
@@ -220,7 +212,14 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
                           : "text-neutral-400"
                     }`}
                   >
-                    {hora ?? "—:—"}
+                    {h12 ? (
+                      <>
+                        {h12.texto}
+                        <span className="ml-0.5 opacity-60">{h12.icono}</span>
+                      </>
+                    ) : (
+                      "—:—"
+                    )}
                   </button>
                 )}
 
@@ -229,17 +228,17 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
                   onClick={() => setPorBorrar(t.id)}
                   disabled={seEstaBorrando}
                   aria-label="Borrar tarea"
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-neutral-700 transition-colors hover:text-red-400 active:text-red-400"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-neutral-700 transition-colors active:text-red-400"
                 >
                   {seEstaBorrando ? (
-                    <Spinner className="h-4 w-4 text-neutral-400" />
+                    <Spinner className="h-3.5 w-3.5 text-neutral-400" />
                   ) : (
                     <svg
                       viewBox="0 0 24 24"
-                      className="h-4 w-4"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                     >
                       <path d="M18 6 6 18M6 6l12 12" />
@@ -253,7 +252,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
       })}
 
       {/* Agregar tarea suelta */}
-      <div className="flex items-center gap-2 pt-2">
+      <div className="flex w-full items-center gap-2 pt-2">
         <input
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
@@ -267,7 +266,7 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
           value={horaNueva}
           onChange={(e) => setHoraNueva(e.target.value)}
           disabled={creando}
-          className="w-[86px] shrink-0 rounded-xl border border-neutral-800 bg-neutral-900 px-1.5 py-2.5 text-sm text-neutral-100 outline-none focus:border-neutral-700 disabled:opacity-50"
+          className="w-[78px] shrink-0 rounded-xl border border-neutral-800 bg-neutral-900 px-1 py-2.5 text-xs text-neutral-100 outline-none focus:border-neutral-700 disabled:opacity-50"
         />
         <button
           type="button"
