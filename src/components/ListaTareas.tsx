@@ -16,9 +16,34 @@ interface Props {
   horaActual: string;
 }
 
+/** Spinner reutilizable. */
+function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3"
+        className="opacity-25"
+      />
+      <path
+        d="M12 2a10 10 0 0 1 10 10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
   const [, startTransition] = useTransition();
   const [editando, setEditando] = useState<string | null>(null);
+  const [porBorrar, setPorBorrar] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState<Set<string>>(new Set());
+  const [creando, setCreando] = useState(false);
   const [nueva, setNueva] = useState("");
   const [horaNueva, setHoraNueva] = useState("");
 
@@ -43,17 +68,21 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
   };
 
   const crear = () => {
-    if (!nueva.trim()) return;
+    if (!nueva.trim() || creando) return;
     const titulo = nueva;
     const hora = horaNueva;
-    setNueva("");
-    setHoraNueva("");
+    setCreando(true);
     startTransition(async () => {
       await agregarTarea(dayId, titulo, hora);
+      setNueva("");
+      setHoraNueva("");
+      setCreando(false);
     });
   };
 
-  const eliminar = (id: string) => {
+  const confirmarBorrado = (id: string) => {
+    setPorBorrar(null);
+    setBorrando((s) => new Set(s).add(id));
     startTransition(async () => {
       await borrarTarea(id);
     });
@@ -64,116 +93,161 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
       {optimistas.map((t) => {
         const hora = soloHoraMinuto(t.hora);
         const esPasada = hora !== null && hora < horaActual && !t.hecha;
+        const seEstaBorrando = borrando.has(t.id);
+        const preguntando = porBorrar === t.id;
 
         return (
           <div
             key={t.id}
-            className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
-              t.hecha
-                ? "border-neutral-900 bg-neutral-950/60"
-                : esPasada
-                  ? "border-amber-900/40 bg-neutral-900/60"
-                  : "border-neutral-800 bg-neutral-900"
+            className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-300 ${
+              preguntando
+                ? "border-red-900/70 bg-red-950/20"
+                : t.hecha
+                  ? "border-neutral-900 bg-neutral-950/60"
+                  : esPasada
+                    ? "border-amber-900/40 bg-neutral-900/60"
+                    : "border-neutral-800 bg-neutral-900"
+            } ${
+              seEstaBorrando ? "pointer-events-none scale-95 opacity-40" : ""
             }`}
           >
-            <button
-              type="button"
-              onClick={() => alternar(t)}
-              aria-label={t.hecha ? "Desmarcar" : "Marcar como hecha"}
-              className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border transition-colors ${
-                t.hecha
-                  ? "border-lime-400 bg-lime-400"
-                  : "border-neutral-700 hover:border-lime-400"
-              }`}
-            >
-              {t.hecha && (
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 text-neutral-950"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+            {preguntando ? (
+              /* ---------- Modo confirmación ---------- */
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-neutral-300">
+                    ¿Borrar{" "}
+                    <span className="text-neutral-100">{t.titulo}</span>?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPorBorrar(null)}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors active:bg-neutral-800"
                 >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              )}
-            </button>
-
-            <span
-              className={`h-8 w-1 shrink-0 rounded-full ${
-                COLOR_CATEGORIA[t.categoria]
-              } ${t.hecha ? "opacity-30" : ""}`}
-            />
-
-            <div className="min-w-0 flex-1">
-              <p
-                className={`truncate text-sm ${
-                  t.hecha
-                    ? "text-neutral-600 line-through"
-                    : "text-neutral-100"
-                }`}
-              >
-                {t.titulo}
-                {t.es_minimo && !t.hecha && (
-                  <span className="ml-2 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">
-                    mín
-                  </span>
-                )}
-              </p>
-              {t.duracion_min ? (
-                <p className="text-xs text-neutral-600">{t.duracion_min} min</p>
-              ) : null}
-            </div>
-
-            {editando === t.id ? (
-              <input
-                type="time"
-                defaultValue={hora ?? ""}
-                autoFocus
-                onBlur={(e) => guardarHora(t.id, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    guardarHora(t.id, (e.target as HTMLInputElement).value);
-                  }
-                  if (e.key === "Escape") setEditando(null);
-                }}
-                className="w-24 rounded-lg border border-lime-400 bg-neutral-950 px-2 py-1 text-sm text-neutral-100 outline-none"
-              />
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmarBorrado(t.id)}
+                  className="shrink-0 rounded-lg bg-red-500/90 px-3 py-1.5 text-sm font-medium text-white transition-colors active:bg-red-600"
+                >
+                  Borrar
+                </button>
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setEditando(t.id)}
-                className={`shrink-0 rounded-lg px-2 py-1 font-mono text-sm transition-colors hover:bg-neutral-800 ${
-                  t.hecha
-                    ? "text-neutral-700"
-                    : esPasada
-                      ? "text-amber-400"
-                      : "text-neutral-400"
-                }`}
-              >
-                {hora ?? "—:—"}
-              </button>
-            )}
+              /* ---------- Modo normal ---------- */
+              <>
+                <button
+                  type="button"
+                  onClick={() => alternar(t)}
+                  aria-label={t.hecha ? "Desmarcar" : "Marcar como hecha"}
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border transition-colors ${
+                    t.hecha
+                      ? "border-lime-400 bg-lime-400"
+                      : "border-neutral-700 active:border-lime-400"
+                  }`}
+                >
+                  {t.hecha && (
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4 text-neutral-950"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
+                </button>
 
-            <button
-              type="button"
-              onClick={() => eliminar(t.id)}
-              aria-label="Borrar tarea"
-              className="shrink-0 text-neutral-800 transition-colors hover:text-red-400"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
+                <span
+                  className={`h-8 w-1 shrink-0 rounded-full ${
+                    COLOR_CATEGORIA[t.categoria]
+                  } ${t.hecha ? "opacity-30" : ""}`}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-sm ${
+                      t.hecha
+                        ? "text-neutral-600 line-through"
+                        : "text-neutral-100"
+                    }`}
+                  >
+                    {t.titulo}
+                    {t.es_minimo && !t.hecha && (
+                      <span className="ml-1.5 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">
+                        mín
+                      </span>
+                    )}
+                  </p>
+                  {t.duracion_min ? (
+                    <p className="text-xs text-neutral-600">
+                      {t.duracion_min} min
+                    </p>
+                  ) : null}
+                </div>
+
+                {editando === t.id ? (
+                  <input
+                    type="time"
+                    defaultValue={hora ?? ""}
+                    autoFocus
+                    onBlur={(e) => guardarHora(t.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        guardarHora(
+                          t.id,
+                          (e.target as HTMLInputElement).value
+                        );
+                      }
+                      if (e.key === "Escape") setEditando(null);
+                    }}
+                    className="w-[86px] shrink-0 rounded-lg border border-lime-400 bg-neutral-950 px-1.5 py-1 text-sm text-neutral-100 outline-none"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditando(t.id)}
+                    className={`shrink-0 rounded-lg px-1.5 py-1 font-mono text-sm transition-colors active:bg-neutral-800 ${
+                      t.hecha
+                        ? "text-neutral-700"
+                        : esPasada
+                          ? "text-amber-400"
+                          : "text-neutral-400"
+                    }`}
+                  >
+                    {hora ?? "—:—"}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setPorBorrar(t.id)}
+                  disabled={seEstaBorrando}
+                  aria-label="Borrar tarea"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-neutral-700 transition-colors hover:text-red-400 active:text-red-400"
+                >
+                  {seEstaBorrando ? (
+                    <Spinner className="h-4 w-4 text-neutral-400" />
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    >
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         );
       })}
@@ -184,21 +258,25 @@ export default function ListaTareas({ tareas, dayId, horaActual }: Props) {
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && crear()}
+          disabled={creando}
           placeholder="Agregar algo suelto…"
-          className="min-w-0 flex-1 rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-neutral-700"
+          className="min-w-0 flex-1 rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-neutral-700 disabled:opacity-50"
         />
         <input
           type="time"
           value={horaNueva}
           onChange={(e) => setHoraNueva(e.target.value)}
-          className="w-24 rounded-xl border border-neutral-800 bg-neutral-900 px-2 py-2.5 text-sm text-neutral-100 outline-none focus:border-neutral-700"
+          disabled={creando}
+          className="w-[86px] shrink-0 rounded-xl border border-neutral-800 bg-neutral-900 px-1.5 py-2.5 text-sm text-neutral-100 outline-none focus:border-neutral-700 disabled:opacity-50"
         />
         <button
           type="button"
           onClick={crear}
-          className="shrink-0 rounded-xl bg-neutral-800 px-3 py-2.5 text-sm text-neutral-300 transition-colors hover:bg-neutral-700"
+          disabled={creando}
+          aria-label="Agregar tarea"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-800 text-lg text-neutral-300 transition-colors active:bg-neutral-700 disabled:opacity-50"
         >
-          +
+          {creando ? <Spinner className="h-4 w-4" /> : "+"}
         </button>
       </div>
     </div>

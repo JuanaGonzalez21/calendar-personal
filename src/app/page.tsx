@@ -13,7 +13,7 @@ export default async function Hoy() {
 
   if (!dia) {
     return (
-      <main className="mx-auto max-w-lg px-5 py-16">
+      <main className="mx-auto w-full max-w-lg overflow-x-hidden px-4 py-10 pb-24">
         <p className="text-neutral-400">
           No se pudo cargar el día. Recarga la página.
         </p>
