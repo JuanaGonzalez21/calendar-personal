@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { formatoTiempo, type Curso, type CursoConTiempo } from "@/lib/tipos";
 import Nav from "@/components/Nav";
+import GlassCard from "@/components/GlassCard";
 import ListaCursos from "@/components/ListaCursos";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export default async function Cursos() {
 
       <Nav />
 
-      <section className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+      <GlassCard className="mb-6 p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
@@ -69,7 +70,7 @@ export default async function Cursos() {
             </p>
           </div>
         </div>
-      </section>
+      </GlassCard>
 
       <ListaCursos cursos={cursos} />
 

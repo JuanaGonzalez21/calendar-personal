@@ -105,9 +105,17 @@ export interface Curso {
   nombre: string;
   plataforma: string | null;
   url: string | null;
+  /** 0-100. Secundario: el avance real se mide por sesiones de tiempo. */
+  progreso: number;
   prioridad: number;
   activo: boolean;
 }
+
+/** Datos que viajan del formulario a crearCurso / actualizarCurso. */
+export type DatosCurso = Pick<
+  Curso,
+  "nombre" | "plataforma" | "url" | "prioridad" | "progreso"
+>;
 
 export interface CursoConTiempo extends Curso {
   minutosTotal: number;
