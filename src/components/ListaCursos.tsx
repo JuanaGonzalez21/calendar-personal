@@ -130,8 +130,10 @@ export default function ListaCursos({
   };
 
   const archivar = (id: string) => {
+    setPendiente(id);
     startTransition(async () => {
       await alternarActivo(id, false);
+      setPendiente(null);
     });
   };
 
@@ -366,16 +368,18 @@ export default function ListaCursos({
                           <button
                             type="button"
                             onClick={() => abrirEditar(c)}
-                            className="text-xs text-neutral-400 active:text-neutral-200"
+                            disabled={cargando}
+                            className="text-xs text-neutral-400 active:text-neutral-200 disabled:opacity-40"
                           >
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => archivar(c.id)}
-                            className="text-xs text-neutral-600 active:text-neutral-400"
+                            disabled={cargando}
+                            className="text-xs text-neutral-600 active:text-neutral-400 disabled:opacity-40"
                           >
-                            Archivar
+                            {cargando ? "Archivando…" : "Archivar"}
                           </button>
                         </div>
                       </div>
