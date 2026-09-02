@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ORDEN_TIPOS, type PlantillaConTareas } from "@/lib/tipos";
 import Nav from "@/components/Nav";
@@ -37,6 +38,13 @@ export default async function Plantillas() {
       className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
+      <Link
+        href="/ajustes"
+        className="mb-2 inline-block text-sm text-neutral-500 transition-colors active:text-neutral-300"
+      >
+        ← Ajustes
+      </Link>
+
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Plantillas
       </h1>

@@ -7,7 +7,7 @@ const RUTAS = [
   { href: "/", label: "Hoy" },
   { href: "/cursos", label: "Cursos" },
   { href: "/postulaciones", label: "Postulaciones" },
-  { href: "/plantillas", label: "Plantillas" },
+  { href: "/ajustes", label: "Ajustes" },
 ];
 
 export default function Nav() {
@@ -16,7 +16,11 @@ export default function Nav() {
   return (
     <nav className="mb-6 flex flex-wrap gap-1.5">
       {RUTAS.map((r) => {
-        const activa = path === r.href;
+        // "/" solo exacta; las demás también marcan sus subrutas (/ajustes/...).
+        const activa =
+          r.href === "/"
+            ? path === "/"
+            : path === r.href || path.startsWith(`${r.href}/`);
         return (
           <Link
             key={r.href}

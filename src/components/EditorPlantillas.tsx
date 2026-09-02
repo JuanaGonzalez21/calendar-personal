@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import {
   actualizarTarea,
   alternarTareaActiva,
-} from "@/app/plantillas/acciones";
+} from "@/app/ajustes/plantillas/acciones";
 import {
   COLOR_CATEGORIA,
   NOMBRE_CATEGORIA,

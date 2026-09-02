@@ -58,7 +58,7 @@ export async function actualizarTarea(
 
   await supabase.from("template_tasks").update(datos).eq("id", id);
 
-  revalidatePath("/plantillas");
+  revalidatePath("/ajustes/plantillas");
 }
 
 /**
@@ -68,5 +68,5 @@ export async function actualizarTarea(
 export async function alternarTareaActiva(id: string, activa: boolean) {
   const supabase = await createClient();
   await supabase.from("template_tasks").update({ activa }).eq("id", id);
-  revalidatePath("/plantillas");
+  revalidatePath("/ajustes/plantillas");
 }
