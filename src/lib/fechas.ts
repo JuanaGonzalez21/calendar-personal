@@ -20,6 +20,16 @@ export function hoyBogota(): string {
   }).format(new Date());
 }
 
+/** Fecha (YYYY-MM-DD, en hora de Bogotá) de un timestamp ISO completo. */
+export function fechaBogotaDe(ts: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ts));
+}
+
 /** Hora actual en Bogotá, formato HH:MM (24h, para comparar). */
 export function horaBogota(): string {
   return new Intl.DateTimeFormat("en-GB", {

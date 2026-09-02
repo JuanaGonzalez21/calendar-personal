@@ -7,6 +7,7 @@ const RUTAS = [
   { href: "/", label: "Hoy" },
   { href: "/cursos", label: "Cursos" },
   { href: "/postulaciones", label: "Postulaciones" },
+  { href: "/pagos", label: "Pagos" },
   { href: "/ajustes", label: "Ajustes" },
 ];
 

@@ -192,6 +192,74 @@ export const ORDEN_GRUPOS: GrupoRacha[] = ["general", "personal"];
 
 export const ORDEN_TIPOS: TipoDia[] = ["A_cocina", "B_gym", "B_libre", "roto"];
 
+/* -------------------------------- PAGOS -------------------------------- */
+
+export type CategoriaPago = "fijo" | "suscripcion" | "extra";
+
+export type ResponsablePago = "juana" | "angel" | "compartido";
+
+export interface Pago {
+  id: string;
+  concepto: string;
+  monto: number | null;
+  categoria: CategoriaPago;
+  recurrente: boolean;
+  /** Día de cobro (1-31) cuando es recurrente. */
+  dia_mes: number | null;
+  /** Fecha de vencimiento cuando es puntual. */
+  fecha_venc: string | null;
+  responsable: ResponsablePago;
+  /** null = nunca pagado. En recurrentes cuenta solo si es del mes en curso. */
+  pagado_at: string | null;
+  nota: string | null;
+}
+
+/** Datos que viajan del formulario a crearPago / actualizarPago. */
+export type DatosPago = Pick<
+  Pago,
+  | "concepto"
+  | "monto"
+  | "categoria"
+  | "recurrente"
+  | "dia_mes"
+  | "fecha_venc"
+  | "responsable"
+  | "nota"
+>;
+
+export const NOMBRE_CATEGORIA_PAGO: Record<CategoriaPago, string> = {
+  fijo: "Fijo",
+  suscripcion: "Suscripción",
+  extra: "Extra",
+};
+
+export const ORDEN_CATEGORIAS_PAGO: CategoriaPago[] = [
+  "fijo",
+  "suscripcion",
+  "extra",
+];
+
+export const NOMBRE_RESPONSABLE: Record<ResponsablePago, string> = {
+  juana: "Juana",
+  angel: "Ángel",
+  compartido: "Compartido",
+};
+
+export const ORDEN_RESPONSABLES: ResponsablePago[] = [
+  "juana",
+  "angel",
+  "compartido",
+];
+
+/** "$ 1.150.000" — pesos colombianos sin decimales. */
+export function formatoCOP(monto: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(monto);
+}
+
 /* ------------------------------- COLORES ------------------------------- */
 
 export const NOMBRE_TIPO: Record<TipoDia, string> = {
