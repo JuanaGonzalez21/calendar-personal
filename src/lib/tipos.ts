@@ -114,6 +114,84 @@ export interface CursoConTiempo extends Curso {
   minutosSemana: number;
 }
 
+/* ------------------------------ PLANTILLAS ----------------------------- */
+
+export interface TareaPlantilla {
+  id: string;
+  template_id: string;
+  titulo: string;
+  categoria: Categoria;
+  grupo: GrupoRacha;
+  hora: string | null;
+  duracion_min: number | null;
+  orden: number;
+  peso: number;
+  es_minimo: boolean;
+  aviso_min: number | null;
+  activa: boolean;
+}
+
+export interface PlantillaConTareas {
+  id: string;
+  tipo: TipoDia;
+  nombre: string;
+  descripcion: string | null;
+  /** Todas las tareas, activas e inactivas, ordenadas por `orden`. */
+  tareas: TareaPlantilla[];
+}
+
+/**
+ * Campos de una tarea de plantilla que el editor puede tocar.
+ * Excluye a propósito `activa` (va por alternarTareaActiva), `orden`
+ * (Etapa 3) y `template_id` (una tarea no se mueve de plantilla).
+ */
+export type CamposTareaPlantilla = Partial<
+  Pick<
+    TareaPlantilla,
+    "titulo" | "hora" | "categoria" | "grupo" | "peso" | "es_minimo" | "duracion_min"
+  >
+>;
+
+/**
+ * La generación del día (lib/dia.ts) depende de estos títulos exactos:
+ * "Bellaface" se compara con === y "Bloque 1" con startsWith.
+ * Renombrarlos rompería tocaBellaface / ajustarBloque1.
+ */
+export function esTituloProtegido(titulo: string): boolean {
+  return titulo === "Bellaface" || titulo.startsWith("Bloque 1");
+}
+
+export const NOMBRE_CATEGORIA: Record<Categoria, string> = {
+  estudio: "Estudio",
+  proyecto: "Proyecto",
+  postulaciones: "Postulaciones",
+  perros: "Perros",
+  casa: "Casa",
+  salud: "Salud",
+  salidas: "Salidas",
+  otros: "Otros",
+};
+
+export const ORDEN_CATEGORIAS: Categoria[] = [
+  "estudio",
+  "proyecto",
+  "postulaciones",
+  "perros",
+  "casa",
+  "salud",
+  "salidas",
+  "otros",
+];
+
+export const NOMBRE_GRUPO: Record<GrupoRacha, string> = {
+  general: "General",
+  personal: "Personal",
+};
+
+export const ORDEN_GRUPOS: GrupoRacha[] = ["general", "personal"];
+
+export const ORDEN_TIPOS: TipoDia[] = ["A_cocina", "B_gym", "B_libre", "roto"];
+
 /* ------------------------------- COLORES ------------------------------- */
 
 export const NOMBRE_TIPO: Record<TipoDia, string> = {

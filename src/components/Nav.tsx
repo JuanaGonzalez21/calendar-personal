@@ -7,13 +7,14 @@ const RUTAS = [
   { href: "/", label: "Hoy" },
   { href: "/cursos", label: "Cursos" },
   { href: "/postulaciones", label: "Postulaciones" },
+  { href: "/plantillas", label: "Plantillas" },
 ];
 
 export default function Nav() {
   const path = usePathname();
 
   return (
-    <nav className="mb-6 flex gap-1.5">
+    <nav className="mb-6 flex flex-wrap gap-1.5">
       {RUTAS.map((r) => {
         const activa = path === r.href;
         return (
