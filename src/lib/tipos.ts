@@ -260,6 +260,51 @@ export function formatoCOP(monto: number): string {
   }).format(monto);
 }
 
+/* ------------------------------- EVENTOS ------------------------------- */
+
+export type TipoEvento =
+  | "medica"
+  | "entrevista"
+  | "familiar"
+  | "salida"
+  | "otro";
+
+export interface Evento {
+  id: string;
+  titulo: string;
+  /** La UI se guía por tipo; `categoria` de la tabla queda en su default. */
+  tipo: TipoEvento;
+  fecha: string;
+  hora: string | null;
+  duracion_min: number | null;
+  nota: string | null;
+  /** Intención de marcar ese día como roto (la generación aún no lo lee). */
+  bloquea_dia: boolean;
+}
+
+/** Datos que viajan del formulario a crearEvento / actualizarEvento. */
+export type DatosEvento = Pick<
+  Evento,
+  "titulo" | "tipo" | "fecha" | "hora" | "duracion_min" | "nota" | "bloquea_dia"
+>;
+
+export const NOMBRE_TIPO_EVENTO: Record<TipoEvento, string> = {
+  medica: "Médica",
+  entrevista: "Entrevista",
+  familiar: "Familiar",
+  salida: "Salida",
+  otro: "Otro",
+};
+
+/** Entrevista primero: es lo que más importa resaltar. */
+export const ORDEN_TIPOS_EVENTO: TipoEvento[] = [
+  "entrevista",
+  "medica",
+  "familiar",
+  "salida",
+  "otro",
+];
+
 /* ------------------------------- COLORES ------------------------------- */
 
 export const NOMBRE_TIPO: Record<TipoDia, string> = {
