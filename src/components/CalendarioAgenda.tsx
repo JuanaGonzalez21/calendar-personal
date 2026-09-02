@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import {
   Briefcase,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   MapPin,
   Stethoscope,
   Users,
@@ -21,7 +23,7 @@ import {
   type Evento,
   type TipoEvento,
 } from "@/lib/tipos";
-import { formatoLargo, hora12, soloHoraMinuto, sumarDias } from "@/lib/fechas";
+import { diaSemana, formatoLargo, hora12, soloHoraMinuto } from "@/lib/fechas";
 import GlassCard from "./GlassCard";
 
 const ICONO_TIPO: Record<TipoEvento, LucideIcon> = {
@@ -41,6 +43,17 @@ const COLOR_TIPO: Record<TipoEvento, string> = {
   otro: "text-neutral-500",
 };
 
+/** Los punticos del calendario (versión bg de COLOR_TIPO). */
+const PUNTO_TIPO: Record<TipoEvento, string> = {
+  entrevista: "bg-lima",
+  medica: "bg-rose-400/80",
+  familiar: "bg-violet-400/80",
+  salida: "bg-teal-400/80",
+  otro: "bg-neutral-500",
+};
+
+const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
+
 interface FormEvento {
   titulo: string;
   tipo: TipoEvento;
@@ -51,14 +64,15 @@ interface FormEvento {
   bloquea_dia: boolean;
 }
 
-/** "17 ago" — para la columna de fecha en pasados. */
-function fechaCortita(fecha: string): string {
-  const [y, m, d] = fecha.split("-").map(Number);
-  return new Intl.DateTimeFormat("es-CO", {
+/** "Septiembre de 2026" para el encabezado. */
+function tituloMes(mes: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  const s = new Intl.DateTimeFormat("es-CO", {
     timeZone: "UTC",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(y, m - 1, 1)));
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 const input =
@@ -158,9 +172,7 @@ function Campos({
         >
           <span
             className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border transition-colors ${
-              form.bloquea_dia
-                ? "border-lima bg-lima"
-                : "border-white/20"
+              form.bloquea_dia ? "border-lima bg-lima" : "border-white/20"
             }`}
           >
             {form.bloquea_dia && (
@@ -188,7 +200,7 @@ function Campos({
   );
 }
 
-export default function ListaAgenda({
+export default function CalendarioAgenda({
   eventos,
   hoy,
   abrirNuevo = false,
@@ -199,6 +211,8 @@ export default function ListaAgenda({
   abrirNuevo?: boolean;
 }) {
   const [, startTransition] = useTransition();
+  const [mesVisible, setMesVisible] = useState(hoy.slice(0, 7));
+  const [diaSeleccionado, setDiaSeleccionado] = useState(hoy);
   const [creando, setCreando] = useState(abrirNuevo);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState<FormEvento | null>(() =>
@@ -217,16 +231,38 @@ export default function ListaAgenda({
   const [guardando, setGuardando] = useState(false);
   const [confirmandoBorrar, setConfirmandoBorrar] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
-  const [verPasados, setVerPasados] = useState(false);
+
+  /* ------------------------- Rejilla del mes ------------------------- */
+
+  const [anio, mes] = mesVisible.split("-").map(Number);
+  const numDias = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+  // diaSemana: 0 = domingo … 6 = sábado → columna con lunes primero.
+  const offset = (diaSemana(`${mesVisible}-01`) + 6) % 7;
+  const celdas: (string | null)[] = [
+    ...Array.from({ length: offset }, () => null),
+    ...Array.from(
+      { length: numDias },
+      (_, i) => `${mesVisible}-${String(i + 1).padStart(2, "0")}`,
+    ),
+  ];
+
+  const cambiarMes = (delta: number) => {
+    const d = new Date(Date.UTC(anio, mes - 1 + delta, 1));
+    setMesVisible(
+      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+    );
+  };
 
   // Vienen ordenados por fecha y hora desde el server.
-  const futuros = eventos.filter((e) => e.fecha >= hoy);
-  const pasados = eventos.filter((e) => e.fecha < hoy).reverse();
+  const eventosDe = (fecha: string) => eventos.filter((e) => e.fecha === fecha);
+  const delDia = eventosDe(diaSeleccionado);
+
+  /* --------------------------- Formulario ---------------------------- */
 
   const vacio = (): FormEvento => ({
     titulo: "",
     tipo: "otro",
-    fecha: hoy,
+    fecha: diaSeleccionado,
     hora: "",
     duracion_min: "",
     nota: "",
@@ -301,107 +337,10 @@ export default function ListaAgenda({
     });
   };
 
-  const tituloFecha = (fecha: string) => {
-    if (fecha === hoy) return "Hoy";
-    if (fecha === sumarDias(hoy, 1)) return "Mañana";
-    return formatoLargo(fecha);
-  };
-
-  const tarjeta = (e: Evento, pasado: boolean) => {
-    const abierto = editando === e.id;
-    const eliminando = borrando === e.id;
-    const Icono = ICONO_TIPO[e.tipo];
-    const h12 = hora12(soloHoraMinuto(e.hora));
-
-    return (
-      <GlassCard
-        key={e.id}
-        className={`transition-all duration-300 ${
-          eliminando ? "pointer-events-none scale-95 opacity-40" : ""
-        } ${pasado && !abierto ? "opacity-50" : ""}`}
-      >
-        <button
-          type="button"
-          onClick={() => (abierto ? cerrar() : abrirEditar(e))}
-          className="flex w-full items-center gap-2.5 px-3 py-3 text-left"
-        >
-          <Icono className={`h-4 w-4 shrink-0 ${COLOR_TIPO[e.tipo]}`} />
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm text-neutral-100">{e.titulo}</p>
-            <p className="truncate text-xs text-neutral-500">
-              {NOMBRE_TIPO_EVENTO[e.tipo]}
-              {e.duracion_min ? ` · ${e.duracion_min} min` : ""}
-              {e.bloquea_dia && (
-                <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 font-mono text-[10px] text-red-400/70">
-                  bloquea el día
-                </span>
-              )}
-            </p>
-            {e.nota && (
-              <p className="truncate text-xs text-neutral-600">{e.nota}</p>
-            )}
-          </div>
-
-          <div className="shrink-0 text-right font-mono text-[13px] text-neutral-400">
-            {pasado && (
-              <p className="text-[11px] text-neutral-500">
-                {fechaCortita(e.fecha)}
-              </p>
-            )}
-            {h12 ? (
-              <p>
-                {h12.texto}
-                <span className="ml-0.5 opacity-60">{h12.icono}</span>
-              </p>
-            ) : (
-              <p className="text-neutral-600">—:—</p>
-            )}
-          </div>
-        </button>
-
-        {abierto && form && (
-          <div className="space-y-3 border-t border-white/10 px-3 py-3">
-            <Campos form={form} setForm={setForm} />
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={cerrar}
-                className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-neutral-400 active:bg-white/5"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={guardar}
-                disabled={guardando || !valido}
-                className="flex-1 rounded-xl bg-lima py-2.5 text-sm font-medium text-neutral-950 disabled:opacity-40"
-              >
-                {guardando ? "Guardando…" : "Guardar"}
-              </button>
-            </div>
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() =>
-                  confirmandoBorrar ? borrar(e.id) : setConfirmandoBorrar(true)
-                }
-                className="text-xs text-red-400/70 active:text-red-400"
-              >
-                {confirmandoBorrar ? "¿Seguro? Toca otra vez" : "Borrar"}
-              </button>
-            </div>
-          </div>
-        )}
-      </GlassCard>
-    );
-  };
-
-  return (
-    <div className="w-full space-y-4">
-      {/* ------------------------- Registrar ------------------------- */}
-      {creando && form ? (
-        <GlassCard className="space-y-3 p-3">
+  const formulario = (
+    <>
+      {form && (
+        <>
           <Campos form={form} setForm={setForm} />
           <div className="flex gap-2 pt-1">
             <button
@@ -420,7 +359,94 @@ export default function ListaAgenda({
               {guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>
-        </GlassCard>
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <div className="w-full space-y-4">
+      {/* ------------------------- Calendario ------------------------- */}
+      <GlassCard className="p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => cambiarMes(-1)}
+            aria-label="Mes anterior"
+            className="grid h-8 w-8 place-items-center rounded-lg text-neutral-400 transition-colors active:bg-white/5 active:text-neutral-200"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-medium text-neutral-100">
+            {tituloMes(mesVisible)}
+          </p>
+          <button
+            type="button"
+            onClick={() => cambiarMes(1)}
+            aria-label="Mes siguiente"
+            className="grid h-8 w-8 place-items-center rounded-lg text-neutral-400 transition-colors active:bg-white/5 active:text-neutral-200"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mb-1 grid grid-cols-7">
+          {DIAS_SEMANA.map((d, i) => (
+            <p
+              key={i}
+              className="text-center font-mono text-[10px] uppercase text-neutral-600"
+            >
+              {d}
+            </p>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-y-0.5">
+          {celdas.map((fecha, i) => {
+            if (!fecha) return <div key={i} />;
+            const sel = fecha === diaSeleccionado;
+            const esHoy = fecha === hoy;
+            const tipos = [
+              ...new Set(eventosDe(fecha).map((e) => e.tipo)),
+            ].slice(0, 3);
+
+            return (
+              <button
+                key={fecha}
+                type="button"
+                onClick={() => setDiaSeleccionado(fecha)}
+                className={`flex aspect-square flex-col items-center justify-center rounded-lg text-[13px] transition-colors ${
+                  sel
+                    ? "bg-lima font-semibold text-neutral-950"
+                    : esHoy
+                      ? "border border-lima/50 font-medium text-lima"
+                      : "text-neutral-300 active:bg-white/5"
+                }`}
+              >
+                {Number(fecha.slice(8))}
+                <span className="mt-0.5 flex h-1 gap-0.5">
+                  {tipos.map((t) => (
+                    <span
+                      key={t}
+                      className={`h-1 w-1 rounded-full ${
+                        sel ? "bg-neutral-950/60" : PUNTO_TIPO[t]
+                      }`}
+                    />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </GlassCard>
+
+      {/* ---------------------- Día seleccionado ---------------------- */}
+      <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+        {diaSeleccionado === hoy ? "Hoy" : formatoLargo(diaSeleccionado)}
+      </p>
+
+      {creando ? (
+        <GlassCard className="space-y-3 p-3">{formulario}</GlassCard>
       ) : (
         <button
           type="button"
@@ -431,44 +457,87 @@ export default function ListaAgenda({
         </button>
       )}
 
-      {futuros.length === 0 && !creando && (
-        <p className="py-8 text-center text-sm text-neutral-600">
-          No hay eventos próximos.
+      {delDia.length === 0 && !creando && (
+        <p className="py-4 text-center text-sm text-neutral-600">
+          Nada agendado este día.
         </p>
       )}
 
-      {/* ------------------------- Próximos -------------------------- */}
       <div className="space-y-1.5">
-        {futuros.map((e, i) => {
-          const conEncabezado = i === 0 || futuros[i - 1].fecha !== e.fecha;
+        {delDia.map((e) => {
+          const abierto = editando === e.id;
+          const eliminando = borrando === e.id;
+          const Icono = ICONO_TIPO[e.tipo];
+          const h12 = hora12(soloHoraMinuto(e.hora));
+
           return (
-            <div key={e.id} className="space-y-1.5">
-              {conEncabezado && (
-                <p className="pt-2 font-mono text-[11px] uppercase tracking-wider text-neutral-500">
-                  {tituloFecha(e.fecha)}
-                </p>
+            <GlassCard
+              key={e.id}
+              className={`transition-all duration-300 ${
+                eliminando ? "pointer-events-none scale-95 opacity-40" : ""
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => (abierto ? cerrar() : abrirEditar(e))}
+                className="flex w-full items-center gap-2.5 px-3 py-3 text-left"
+              >
+                <Icono className={`h-4 w-4 shrink-0 ${COLOR_TIPO[e.tipo]}`} />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-neutral-100">
+                    {e.titulo}
+                  </p>
+                  <p className="truncate text-xs text-neutral-500">
+                    {NOMBRE_TIPO_EVENTO[e.tipo]}
+                    {e.duracion_min ? ` · ${e.duracion_min} min` : ""}
+                    {e.bloquea_dia && (
+                      <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 font-mono text-[10px] text-red-400/70">
+                        bloquea el día
+                      </span>
+                    )}
+                  </p>
+                  {e.nota && (
+                    <p className="truncate text-xs text-neutral-600">
+                      {e.nota}
+                    </p>
+                  )}
+                </div>
+
+                <span className="shrink-0 font-mono text-[13px] text-neutral-400">
+                  {h12 ? (
+                    <>
+                      {h12.texto}
+                      <span className="ml-0.5 opacity-60">{h12.icono}</span>
+                    </>
+                  ) : (
+                    <span className="text-neutral-600">—:—</span>
+                  )}
+                </span>
+              </button>
+
+              {abierto && (
+                <div className="space-y-3 border-t border-white/10 px-3 py-3">
+                  {formulario}
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        confirmandoBorrar
+                          ? borrar(e.id)
+                          : setConfirmandoBorrar(true)
+                      }
+                      className="text-xs text-red-400/70 active:text-red-400"
+                    >
+                      {confirmandoBorrar ? "¿Seguro? Toca otra vez" : "Borrar"}
+                    </button>
+                  </div>
+                </div>
               )}
-              {tarjeta(e, false)}
-            </div>
+            </GlassCard>
           );
         })}
       </div>
-
-      {/* -------------------------- Pasados -------------------------- */}
-      {pasados.length > 0 && (
-        <div className="space-y-1.5">
-          <button
-            type="button"
-            onClick={() => setVerPasados(!verPasados)}
-            className="w-full py-1 text-center text-xs text-neutral-600 transition-colors active:text-neutral-400"
-          >
-            {verPasados
-              ? "Ocultar pasados"
-              : `Ver pasados (${pasados.length})`}
-          </button>
-          {verPasados && pasados.map((e) => tarjeta(e, true))}
-        </div>
-      )}
     </div>
   );
 }

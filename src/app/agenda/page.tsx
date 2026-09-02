@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { hoyBogota } from "@/lib/fechas";
 import type { Evento } from "@/lib/tipos";
-import ListaAgenda from "@/components/ListaAgenda";
+import CalendarioAgenda from "@/components/CalendarioAgenda";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export default async function Agenda({
         Agenda
       </h1>
 
-      <ListaAgenda
+      <CalendarioAgenda
         key={abrirNuevo ? "nuevo" : "lista"}
         eventos={eventos}
         hoy={hoy}
