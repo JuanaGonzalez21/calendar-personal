@@ -1,14 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { hoyBogota } from "@/lib/fechas";
 import type { Evento } from "@/lib/tipos";
-import Nav from "@/components/Nav";
 import ListaAgenda from "@/components/ListaAgenda";
 
 export const dynamic = "force-dynamic";
 
-export default async function Agenda() {
+export default async function Agenda({
+  searchParams,
+}: {
+  searchParams: Promise<{ nuevo?: string }>;
+}) {
   const supabase = await createClient();
   const hoy = hoyBogota();
+  const { nuevo } = await searchParams;
+  const abrirNuevo = nuevo === "1";
 
   const { data } = await supabase
     .from("events")
@@ -20,16 +25,19 @@ export default async function Agenda() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Agenda
       </h1>
 
-      <Nav />
-
-      <ListaAgenda eventos={eventos} hoy={hoy} />
+      <ListaAgenda
+        key={abrirNuevo ? "nuevo" : "lista"}
+        eventos={eventos}
+        hoy={hoy}
+        abrirNuevo={abrirNuevo}
+      />
     </main>
   );
 }

@@ -191,14 +191,29 @@ function Campos({
 export default function ListaAgenda({
   eventos,
   hoy,
+  abrirNuevo = false,
 }: {
   eventos: Evento[];
   hoy: string;
+  /** Abre el formulario de agendar al llegar con ?nuevo=1 (el "+" de la TabBar). */
+  abrirNuevo?: boolean;
 }) {
   const [, startTransition] = useTransition();
-  const [creando, setCreando] = useState(false);
+  const [creando, setCreando] = useState(abrirNuevo);
   const [editando, setEditando] = useState<string | null>(null);
-  const [form, setForm] = useState<FormEvento | null>(null);
+  const [form, setForm] = useState<FormEvento | null>(() =>
+    abrirNuevo
+      ? {
+          titulo: "",
+          tipo: "otro",
+          fecha: hoy,
+          hora: "",
+          duracion_min: "",
+          nota: "",
+          bloquea_dia: false,
+        }
+      : null,
+  );
   const [guardando, setGuardando] = useState(false);
   const [confirmandoBorrar, setConfirmandoBorrar] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);

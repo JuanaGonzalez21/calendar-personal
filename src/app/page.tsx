@@ -1,4 +1,3 @@
-import Nav from "@/components/Nav";
 import { obtenerDia } from "@/lib/dia";
 import { formatoLargo, hoyBogota, horaBogota, hora12 } from "@/lib/fechas";
 import { NOMBRE_TIPO } from "@/lib/tipos";
@@ -36,7 +35,7 @@ export default async function Hoy() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{
         paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
       }}
@@ -54,7 +53,6 @@ export default async function Hoy() {
           Día {NOMBRE_TIPO[dia.tipo]}
         </h1>
       </header>
-      <Nav />
 
       {/* Progreso */}
       <section className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">

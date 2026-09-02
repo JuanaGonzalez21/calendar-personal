@@ -2,15 +2,20 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyBogota } from "@/lib/fechas";
 import { estaPendiente, ordenarPagos } from "@/lib/pagos";
 import { formatoCOP, type Pago } from "@/lib/tipos";
-import Nav from "@/components/Nav";
 import GlassCard from "@/components/GlassCard";
 import ListaPagos from "@/components/ListaPagos";
 
 export const dynamic = "force-dynamic";
 
-export default async function Pagos() {
+export default async function Pagos({
+  searchParams,
+}: {
+  searchParams: Promise<{ nuevo?: string }>;
+}) {
   const supabase = await createClient();
   const hoy = hoyBogota();
+  const { nuevo } = await searchParams;
+  const abrirNuevo = nuevo === "1";
 
   const { data } = await supabase.from("pagos").select("*");
 
@@ -27,14 +32,12 @@ export default async function Pagos() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Pagos
       </h1>
-
-      <Nav />
 
       <GlassCard className="mb-6 p-4">
         <div className="flex items-end justify-between gap-3">
@@ -53,7 +56,12 @@ export default async function Pagos() {
         </div>
       </GlassCard>
 
-      <ListaPagos pagos={pagos} hoy={hoy} />
+      <ListaPagos
+        key={abrirNuevo ? "nuevo" : "lista"}
+        pagos={pagos}
+        hoy={hoy}
+        abrirNuevo={abrirNuevo}
+      />
     </main>
   );
 }

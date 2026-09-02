@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Nav from "@/components/Nav";
 
 // Más adelante: metas, Bellaface, etc. Agregar aquí y listo.
 const OPCIONES = [
@@ -13,14 +12,12 @@ const OPCIONES = [
 export default function Ajustes() {
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Ajustes
       </h1>
-
-      <Nav />
 
       <div className="space-y-1.5">
         {OPCIONES.map((o) => (

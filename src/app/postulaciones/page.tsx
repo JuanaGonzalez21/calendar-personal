@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import type { Postulacion } from "@/lib/tipos";
-import Nav from "@/components/Nav";
 import ListaPostulaciones from "@/components/ListaPostulaciones";
 
 export const dynamic = "force-dynamic";
@@ -28,14 +27,12 @@ export default async function Postulaciones() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Postulaciones
       </h1>
-
-      <Nav />
 
       <section className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
         <div className="flex items-end justify-between gap-3">

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ORDEN_TIPOS, type PlantillaConTareas } from "@/lib/tipos";
-import Nav from "@/components/Nav";
 import EditorPlantillas from "@/components/EditorPlantillas";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +34,7 @@ export default async function Plantillas() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <Link
@@ -48,8 +47,6 @@ export default async function Plantillas() {
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Plantillas
       </h1>
-
-      <Nav />
 
       <p className="mb-4 text-xs text-neutral-500">
         Los cambios en las plantillas solo afectan los días que se generen de

@@ -191,12 +191,15 @@ function Campos({
 export default function ListaPagos({
   pagos,
   hoy,
+  abrirNuevo = false,
 }: {
   pagos: Pago[];
   hoy: string;
+  /** Abre el formulario de registrar al llegar con ?nuevo=1 (el "+" de la TabBar). */
+  abrirNuevo?: boolean;
 }) {
   const [, startTransition] = useTransition();
-  const [creando, setCreando] = useState(false);
+  const [creando, setCreando] = useState(abrirNuevo);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState<FormPago>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);

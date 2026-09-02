@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { formatoTiempo, type Curso, type CursoConTiempo } from "@/lib/tipos";
-import Nav from "@/components/Nav";
 import GlassCard from "@/components/GlassCard";
 import ListaCursos from "@/components/ListaCursos";
 
@@ -42,14 +41,12 @@ export default async function Cursos() {
 
   return (
     <main
-      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-24"
+      className="mx-auto w-full max-w-lg overflow-x-hidden px-4 pb-32"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 2rem)" }}
     >
       <h1 className="mb-4 text-3xl font-semibold tracking-tight text-neutral-100">
         Cursos
       </h1>
-
-      <Nav />
 
       <GlassCard className="mb-6 p-4">
         <div className="flex items-end justify-between gap-3">
