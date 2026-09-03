@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Briefcase,
   CalendarDays,
@@ -133,23 +134,23 @@ function Campos({
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
           <p className={label}>Fecha *</p>
           <input
             type="date"
             value={form.fecha}
             onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-            className={input}
+            className={`${input} h-[42px]`}
           />
         </div>
-        <div className="flex-1">
+        <div>
           <p className={label}>Hora</p>
           <input
             type="time"
             value={form.hora}
             onChange={(e) => setForm({ ...form, hora: e.target.value })}
-            className={input}
+            className={`${input} h-[42px]`}
           />
         </div>
       </div>
@@ -223,6 +224,7 @@ export default function CalendarioAgenda({
   /** Abre el formulario de agendar al llegar con ?nuevo=1 (el "+" de la TabBar). */
   abrirNuevo?: boolean;
 }) {
+  const router = useRouter();
   const [, startTransition] = useTransition();
   const [mesVisible, setMesVisible] = useState(hoy.slice(0, 7));
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoy);
@@ -342,6 +344,9 @@ export default function CalendarioAgenda({
     startTransition(async () => {
       if (id) await actualizarEvento(id, datos);
       else await crearEvento(datos);
+      // Reconsulta el server component: la lista y los puntos del
+      // calendario se actualizan de una.
+      router.refresh();
       setGuardando(false);
       cerrar();
     });
@@ -352,6 +357,7 @@ export default function CalendarioAgenda({
     cerrar();
     startTransition(async () => {
       await eliminarEvento(id);
+      router.refresh();
       setBorrando(null);
     });
   };

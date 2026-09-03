@@ -38,6 +38,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+/* En iOS los inputs de fecha/hora vienen como pastillas centradas;
+   sin el estilo nativo se ven como campos normales, alineados a la
+   izquierda como el resto del formulario. */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* Quita el resaltado azul al tocar en iOS */
 * {
   -webkit-tap-highlight-color: transparent;

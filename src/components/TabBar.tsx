@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -38,9 +38,48 @@ const DERECHA: Pestana[] = [
 export default function TabBar() {
   const path = usePathname();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [tecladoAbierto, setTecladoAbierto] = useState(false);
 
-  // Sin barra en login ni rutas de auth.
-  if (path.startsWith("/login") || path.startsWith("/auth")) return null;
+  // En iOS el teclado deja los elementos `fixed` flotando en medio de
+  // la pantalla, así que la barra se esconde mientras esté abierto.
+  useEffect(() => {
+    const vv = window.visualViewport;
+
+    if (vv) {
+      // Detector principal: si el viewport visual encoge bastante
+      // frente a la ventana, hay teclado.
+      const medir = () => {
+        setTecladoAbierto(window.innerHeight - vv.height > 150);
+      };
+      vv.addEventListener("resize", medir);
+      vv.addEventListener("scroll", medir);
+      return () => {
+        vv.removeEventListener("resize", medir);
+        vv.removeEventListener("scroll", medir);
+      };
+    }
+
+    // Respaldo sin Visual Viewport API: foco en campos de texto.
+    const esCampo = (t: EventTarget | null) =>
+      t instanceof HTMLElement &&
+      t.matches("input, textarea, select, [contenteditable]");
+    const alEnfocar = (e: FocusEvent) => {
+      if (esCampo(e.target)) setTecladoAbierto(true);
+    };
+    const alDesenfocar = (e: FocusEvent) => {
+      if (esCampo(e.target)) setTecladoAbierto(false);
+    };
+    window.addEventListener("focusin", alEnfocar);
+    window.addEventListener("focusout", alDesenfocar);
+    return () => {
+      window.removeEventListener("focusin", alEnfocar);
+      window.removeEventListener("focusout", alDesenfocar);
+    };
+  }, []);
+
+  // Sin barra en login ni rutas de auth, ni mientras se escribe.
+  if (path.startsWith("/login") || path.startsWith("/auth") || tecladoAbierto)
+    return null;
 
   const activa = (prefijos: string[]) =>
     prefijos.some((p) =>
