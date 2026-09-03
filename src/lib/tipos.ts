@@ -273,8 +273,10 @@ export function formatoCOP(monto: number): string {
 export type TipoEvento =
   | "medica"
   | "entrevista"
+  | "reunion"
   | "familiar"
   | "salida"
+  | "concierto"
   | "otro";
 
 export interface Evento {
@@ -299,28 +301,38 @@ export type DatosEvento = Pick<
 export const NOMBRE_TIPO_EVENTO: Record<TipoEvento, string> = {
   medica: "Médica",
   entrevista: "Entrevista",
+  reunion: "Reunión",
   familiar: "Familiar",
   salida: "Salida",
+  concierto: "Concierto",
   otro: "Otro",
 };
 
 /** Entrevista primero: es lo que más importa resaltar. */
 export const ORDEN_TIPOS_EVENTO: TipoEvento[] = [
   "entrevista",
+  "reunion",
   "medica",
   "familiar",
   "salida",
+  "concierto",
   "otro",
 ];
 
-/** Lo que el calendario de Agenda necesita de un día generado. */
-export type DiaCalendario = Pick<Dia, "fecha" | "tipo" | "es_roto">;
-
-/** Lo que el calendario muestra de una tarea del día (solo lectura). */
-export type TareaCalendario = Pick<
-  Tarea,
-  "id" | "titulo" | "hora" | "hecha" | "categoria" | "orden"
->;
+/**
+ * Resumen de esfuerzo de un día para el calendario. SOLO positivo:
+ * los días sin esfuerzo ni siquiera viajan al cliente — nunca se
+ * señala un día como fracaso, solo se celebra la presencia.
+ */
+export interface EsfuerzoDia {
+  fecha: string;
+  /** 0-100: peso de lo hecho sobre el peso total del día. */
+  pct: number;
+  minimosHechos: number;
+  minimosTotal: number;
+  /** Todas las tareas es_minimo hechas → el día contó (fuego lleno). */
+  minimoCumplido: boolean;
+}
 
 /* ------------------------------- COLORES ------------------------------- */
 

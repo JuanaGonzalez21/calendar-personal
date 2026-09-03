@@ -1,10 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { hoyBogota } from "@/lib/fechas";
-import type {
-  DiaCalendario,
-  Evento,
-  TareaCalendario,
-} from "@/lib/tipos";
+import type { EsfuerzoDia, Evento } from "@/lib/tipos";
 import CalendarioAgenda from "@/components/CalendarioAgenda";
 
 export const dynamic = "force-dynamic";
@@ -27,27 +23,44 @@ export default async function Agenda({
 
   const eventos = (data ?? []) as Evento[];
 
-  // Días generados (una fila por fecha vivida): marcan la rejilla.
-  const { data: diasData } = await supabase
-    .from("days")
-    .select("id, fecha, tipo, es_roto");
-  const dias: DiaCalendario[] = (diasData ?? []).map((d) => ({
-    fecha: d.fecha,
-    tipo: d.tipo,
-    es_roto: d.es_roto,
-  }));
+  // Esfuerzo por día, agregado en el server: al cliente solo viajan
+  // los días con esfuerzo (> 0). Lo demás queda neutro por diseño.
+  const { data: diasData } = await supabase.from("days").select("id, fecha");
+  const { data: tareasData } = await supabase
+    .from("day_tasks")
+    .select("day_id, hecha, peso, es_minimo");
 
-  // Las tareas de hoy vienen precargadas (es el día seleccionado inicial).
-  const diaHoy = (diasData ?? []).find((d) => d.fecha === hoy);
-  let tareasHoy: TareaCalendario[] = [];
-  if (diaHoy) {
-    const { data: tareasData } = await supabase
-      .from("day_tasks")
-      .select("id, titulo, hora, hecha, categoria, orden")
-      .eq("day_id", diaHoy.id)
-      .order("orden");
-    tareasHoy = (tareasData ?? []) as TareaCalendario[];
+  const fechaPorDia = new Map((diasData ?? []).map((d) => [d.id, d.fecha]));
+  const acumulado = new Map<
+    string,
+    { pesoTotal: number; pesoHecho: number; minTotal: number; minHechos: number }
+  >();
+  for (const t of tareasData ?? []) {
+    const fecha = fechaPorDia.get(t.day_id);
+    if (!fecha) continue;
+    const a =
+      acumulado.get(fecha) ??
+      { pesoTotal: 0, pesoHecho: 0, minTotal: 0, minHechos: 0 };
+    const peso = Number(t.peso);
+    a.pesoTotal += peso;
+    if (t.hecha) a.pesoHecho += peso;
+    if (t.es_minimo) {
+      a.minTotal++;
+      if (t.hecha) a.minHechos++;
+    }
+    acumulado.set(fecha, a);
   }
+
+  const esfuerzos: EsfuerzoDia[] = [...acumulado.entries()]
+    .map(([fecha, a]) => ({
+      fecha,
+      pct: a.pesoTotal > 0 ? Math.round((a.pesoHecho / a.pesoTotal) * 100) : 0,
+      minimosHechos: a.minHechos,
+      minimosTotal: a.minTotal,
+      minimoCumplido:
+        a.minTotal === 0 ? a.pesoHecho > 0 : a.minHechos === a.minTotal,
+    }))
+    .filter((e) => e.pct > 0);
 
   return (
     <main
@@ -61,8 +74,7 @@ export default async function Agenda({
       <CalendarioAgenda
         key={abrirNuevo ? "nuevo" : "lista"}
         eventos={eventos}
-        dias={dias}
-        tareasIniciales={tareasHoy}
+        esfuerzos={esfuerzos}
         hoy={hoy}
         abrirNuevo={abrirNuevo}
       />

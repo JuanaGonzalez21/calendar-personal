@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import {
   Briefcase,
   CalendarDays,
-  Check,
   ChevronLeft,
   ChevronRight,
+  Flame,
+  Handshake,
   MapPin,
+  Music,
   Stethoscope,
   Users,
   type LucideIcon,
@@ -17,17 +18,13 @@ import {
   actualizarEvento,
   crearEvento,
   eliminarEvento,
-  tareasDelDia,
 } from "@/app/agenda/acciones";
 import {
-  COLOR_CATEGORIA,
-  NOMBRE_TIPO,
   NOMBRE_TIPO_EVENTO,
   ORDEN_TIPOS_EVENTO,
   type DatosEvento,
-  type DiaCalendario,
+  type EsfuerzoDia,
   type Evento,
-  type TareaCalendario,
   type TipoEvento,
 } from "@/lib/tipos";
 import { diaSemana, formatoLargo, hora12, soloHoraMinuto } from "@/lib/fechas";
@@ -36,26 +33,32 @@ import GlassCard from "./GlassCard";
 const ICONO_TIPO: Record<TipoEvento, LucideIcon> = {
   medica: Stethoscope,
   entrevista: Briefcase,
+  reunion: Handshake,
   familiar: Users,
   salida: MapPin,
+  concierto: Music,
   otro: CalendarDays,
 };
 
 /** Entrevista en lima (que resalte); el resto en tonos sobrios. */
 const COLOR_TIPO: Record<TipoEvento, string> = {
   entrevista: "text-lima",
+  reunion: "text-sky-400/80",
   medica: "text-rose-400/80",
   familiar: "text-violet-400/80",
   salida: "text-teal-400/80",
+  concierto: "text-fuchsia-400/80",
   otro: "text-neutral-500",
 };
 
 /** Los punticos del calendario (versión bg de COLOR_TIPO). */
 const PUNTO_TIPO: Record<TipoEvento, string> = {
   entrevista: "bg-lima",
+  reunion: "bg-sky-400/80",
   medica: "bg-rose-400/80",
   familiar: "bg-violet-400/80",
   salida: "bg-teal-400/80",
+  concierto: "bg-fuchsia-400/80",
   otro: "bg-neutral-500",
 };
 
@@ -209,16 +212,13 @@ function Campos({
 
 export default function CalendarioAgenda({
   eventos,
-  dias,
-  tareasIniciales,
+  esfuerzos,
   hoy,
   abrirNuevo = false,
 }: {
   eventos: Evento[];
-  /** Días generados (con fila en `days`): marcan la rejilla. */
-  dias: DiaCalendario[];
-  /** Tareas de hoy, precargadas desde el server. */
-  tareasIniciales: TareaCalendario[];
+  /** Solo los días con esfuerzo (> 0); los demás quedan neutros. */
+  esfuerzos: EsfuerzoDia[];
   hoy: string;
   /** Abre el formulario de agendar al llegar con ?nuevo=1 (el "+" de la TabBar). */
   abrirNuevo?: boolean;
@@ -226,10 +226,6 @@ export default function CalendarioAgenda({
   const [, startTransition] = useTransition();
   const [mesVisible, setMesVisible] = useState(hoy.slice(0, 7));
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoy);
-  const [tareasPorDia, setTareasPorDia] = useState<
-    Record<string, TareaCalendario[]>
-  >({ [hoy]: tareasIniciales });
-  const [cargandoTareas, setCargandoTareas] = useState<string | null>(null);
   const [creando, setCreando] = useState(abrirNuevo);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState<FormEvento | null>(() =>
@@ -274,22 +270,11 @@ export default function CalendarioAgenda({
   const eventosDe = (fecha: string) => eventos.filter((e) => e.fecha === fecha);
   const delDia = eventosDe(diaSeleccionado);
 
-  const mapaDias = new Map(dias.map((d) => [d.fecha, d]));
-  const infoDia = mapaDias.get(diaSeleccionado);
-  const tareasDia = tareasPorDia[diaSeleccionado];
-
-  const seleccionarDia = (fecha: string) => {
-    setDiaSeleccionado(fecha);
-    // Las tareas se traen una sola vez por día (caché en memoria).
-    if (mapaDias.has(fecha) && tareasPorDia[fecha] === undefined) {
-      setCargandoTareas(fecha);
-      startTransition(async () => {
-        const tareas = await tareasDelDia(fecha);
-        setTareasPorDia((prev) => ({ ...prev, [fecha]: tareas }));
-        setCargandoTareas(null);
-      });
-    }
-  };
+  const mapaEsfuerzo = new Map(esfuerzos.map((e) => [e.fecha, e]));
+  const esfuerzoDia = mapaEsfuerzo.get(diaSeleccionado);
+  const diasConEsfuerzo = esfuerzos.filter((e) =>
+    e.fecha.startsWith(mesVisible),
+  ).length;
 
   /* --------------------------- Formulario ---------------------------- */
 
@@ -424,6 +409,14 @@ export default function CalendarioAgenda({
           </button>
         </div>
 
+        {diasConEsfuerzo > 0 && (
+          <p className="mb-2 flex items-center justify-center gap-1 text-xs text-neutral-400">
+            <Flame className="h-3.5 w-3.5 text-lima" fill="currentColor" />
+            {diasConEsfuerzo}{" "}
+            {diasConEsfuerzo === 1 ? "día" : "días"} con esfuerzo este mes
+          </p>
+        )}
+
         <div className="mb-1 grid grid-cols-7">
           {DIAS_SEMANA.map((d, i) => (
             <p
@@ -444,13 +437,13 @@ export default function CalendarioAgenda({
               ...new Set(eventosDe(fecha).map((e) => e.tipo)),
             ].slice(0, 3);
 
-            const conTareas = mapaDias.has(fecha);
+            const esf = mapaEsfuerzo.get(fecha);
 
             return (
               <button
                 key={fecha}
                 type="button"
-                onClick={() => seleccionarDia(fecha)}
+                onClick={() => setDiaSeleccionado(fecha)}
                 className={`flex aspect-square flex-col items-center justify-center rounded-lg text-[13px] transition-colors ${
                   sel
                     ? "bg-lima font-semibold text-neutral-950"
@@ -470,17 +463,26 @@ export default function CalendarioAgenda({
                     />
                   ))}
                 </span>
-                {/* Rayita neutra = "ese día tuvo tareas". A propósito NO
-                    cambia de color según lo completado: no es un semáforo. */}
-                <span
-                  className={`mt-0.5 h-0.5 w-3 rounded-full ${
-                    conTareas
-                      ? sel
-                        ? "bg-neutral-950/40"
-                        : "bg-white/20"
-                      : "opacity-0"
-                  }`}
-                />
+                {/* Marcador de esfuerzo, SOLO positivo: fuego lleno si el
+                    mínimo viable se cumplió, chispa ámbar si hubo esfuerzo
+                    parcial, y NADA si no hubo — jamás rojo ni regaño. */}
+                <span className="mt-0.5 flex h-3 items-center justify-center">
+                  {esf &&
+                    (esf.minimoCumplido ? (
+                      <Flame
+                        className={`h-3 w-3 ${
+                          sel ? "text-neutral-950" : "text-lima"
+                        }`}
+                        fill="currentColor"
+                      />
+                    ) : (
+                      <Flame
+                        className={`h-2.5 w-2.5 ${
+                          sel ? "text-neutral-950/60" : "text-amber-400/70"
+                        }`}
+                      />
+                    ))}
+                </span>
               </button>
             );
           })}
@@ -492,82 +494,27 @@ export default function CalendarioAgenda({
         {diaSeleccionado === hoy ? "Hoy" : formatoLargo(diaSeleccionado)}
       </p>
 
-      {/* --------------------------- Tareas --------------------------- */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-600">
-            Tareas
-            {infoDia && ` · Día ${NOMBRE_TIPO[infoDia.tipo]}`}
-            {infoDia?.es_roto && " · roto"}
-          </p>
-          {diaSeleccionado === hoy && infoDia && (
-            <Link href="/" className="text-xs text-lima/80 active:text-lima">
-              Abrir en Hoy
-            </Link>
+      {/* -------------------- Esfuerzo del día ------------------------ */}
+      {/* Resumen compacto y solo positivo; el detalle tarea por tarea
+          vive en Hoy. Un día sin registro no muestra nada. */}
+      {esfuerzoDia && (
+        <GlassCard className="flex items-center gap-2.5 px-3 py-2.5">
+          {esfuerzoDia.minimoCumplido ? (
+            <Flame className="h-4 w-4 shrink-0 text-lima" fill="currentColor" />
+          ) : (
+            <Flame className="h-4 w-4 shrink-0 text-amber-400/70" />
           )}
-        </div>
-
-        {!infoDia ? (
-          <p className="py-2 text-sm text-neutral-600">
-            Este día aún no tiene tareas registradas.
+          <p className="text-sm text-neutral-100">
+            Esfuerzo: {esfuerzoDia.pct}%
+            {esfuerzoDia.minimosTotal > 0 && (
+              <span className="text-neutral-500">
+                {" "}
+                · mínimo {esfuerzoDia.minimosHechos}/{esfuerzoDia.minimosTotal}
+              </span>
+            )}
           </p>
-        ) : cargandoTareas === diaSeleccionado || tareasDia === undefined ? (
-          <p className="py-2 text-sm text-neutral-600">Cargando tareas…</p>
-        ) : tareasDia.length === 0 ? (
-          <p className="py-2 text-sm text-neutral-600">Sin tareas ese día.</p>
-        ) : (
-          <GlassCard className="divide-y divide-white/5">
-            {tareasDia.map((t) => {
-              const h12 = hora12(soloHoraMinuto(t.hora));
-              return (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-2.5 px-3 py-2"
-                >
-                  <span
-                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
-                      t.hecha
-                        ? "border-lima/60 bg-lima/80"
-                        : "border-white/15"
-                    }`}
-                  >
-                    {t.hecha && (
-                      <Check
-                        className="h-3 w-3 text-neutral-950"
-                        strokeWidth={3}
-                      />
-                    )}
-                  </span>
-                  <span
-                    className={`h-6 w-[3px] shrink-0 rounded-full ${
-                      COLOR_CATEGORIA[t.categoria]
-                    } ${t.hecha ? "opacity-30" : ""}`}
-                  />
-                  <p
-                    className={`min-w-0 flex-1 truncate text-sm ${
-                      t.hecha
-                        ? "text-neutral-500 line-through"
-                        : "text-neutral-100"
-                    }`}
-                  >
-                    {t.titulo}
-                  </p>
-                  <span className="shrink-0 font-mono text-[12px] text-neutral-500">
-                    {h12 ? (
-                      <>
-                        {h12.texto}
-                        <span className="ml-0.5 opacity-60">{h12.icono}</span>
-                      </>
-                    ) : (
-                      "—:—"
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </GlassCard>
-        )}
-      </div>
+        </GlassCard>
+      )}
 
       {/* -------------------------- Eventos --------------------------- */}
       <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-600">

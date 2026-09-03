@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { DatosEvento, TareaCalendario } from "@/lib/tipos";
+import type { DatosEvento } from "@/lib/tipos";
 
 /**
  * Normaliza lo que llega del formulario. `user_id` lo pone la BD
@@ -52,27 +52,4 @@ export async function eliminarEvento(id: string) {
   const supabase = await createClient();
   await supabase.from("events").delete().eq("id", id);
   revalidatePath("/agenda");
-}
-
-/**
- * Lectura para el calendario: las tareas del día `fecha`, si ese día
- * ya fue generado (fila en `days`). Solo lee — no revalida nada.
- */
-export async function tareasDelDia(fecha: string): Promise<TareaCalendario[]> {
-  const supabase = await createClient();
-
-  const { data: dia } = await supabase
-    .from("days")
-    .select("id")
-    .eq("fecha", fecha)
-    .maybeSingle();
-  if (!dia) return [];
-
-  const { data } = await supabase
-    .from("day_tasks")
-    .select("id, titulo, hora, hecha, categoria, orden")
-    .eq("day_id", dia.id)
-    .order("orden");
-
-  return (data ?? []) as TareaCalendario[];
 }
