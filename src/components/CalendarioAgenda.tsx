@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Briefcase,
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   MapPin,
@@ -15,12 +17,17 @@ import {
   actualizarEvento,
   crearEvento,
   eliminarEvento,
+  tareasDelDia,
 } from "@/app/agenda/acciones";
 import {
+  COLOR_CATEGORIA,
+  NOMBRE_TIPO,
   NOMBRE_TIPO_EVENTO,
   ORDEN_TIPOS_EVENTO,
   type DatosEvento,
+  type DiaCalendario,
   type Evento,
+  type TareaCalendario,
   type TipoEvento,
 } from "@/lib/tipos";
 import { diaSemana, formatoLargo, hora12, soloHoraMinuto } from "@/lib/fechas";
@@ -202,10 +209,16 @@ function Campos({
 
 export default function CalendarioAgenda({
   eventos,
+  dias,
+  tareasIniciales,
   hoy,
   abrirNuevo = false,
 }: {
   eventos: Evento[];
+  /** Días generados (con fila en `days`): marcan la rejilla. */
+  dias: DiaCalendario[];
+  /** Tareas de hoy, precargadas desde el server. */
+  tareasIniciales: TareaCalendario[];
   hoy: string;
   /** Abre el formulario de agendar al llegar con ?nuevo=1 (el "+" de la TabBar). */
   abrirNuevo?: boolean;
@@ -213,6 +226,10 @@ export default function CalendarioAgenda({
   const [, startTransition] = useTransition();
   const [mesVisible, setMesVisible] = useState(hoy.slice(0, 7));
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoy);
+  const [tareasPorDia, setTareasPorDia] = useState<
+    Record<string, TareaCalendario[]>
+  >({ [hoy]: tareasIniciales });
+  const [cargandoTareas, setCargandoTareas] = useState<string | null>(null);
   const [creando, setCreando] = useState(abrirNuevo);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState<FormEvento | null>(() =>
@@ -256,6 +273,23 @@ export default function CalendarioAgenda({
   // Vienen ordenados por fecha y hora desde el server.
   const eventosDe = (fecha: string) => eventos.filter((e) => e.fecha === fecha);
   const delDia = eventosDe(diaSeleccionado);
+
+  const mapaDias = new Map(dias.map((d) => [d.fecha, d]));
+  const infoDia = mapaDias.get(diaSeleccionado);
+  const tareasDia = tareasPorDia[diaSeleccionado];
+
+  const seleccionarDia = (fecha: string) => {
+    setDiaSeleccionado(fecha);
+    // Las tareas se traen una sola vez por día (caché en memoria).
+    if (mapaDias.has(fecha) && tareasPorDia[fecha] === undefined) {
+      setCargandoTareas(fecha);
+      startTransition(async () => {
+        const tareas = await tareasDelDia(fecha);
+        setTareasPorDia((prev) => ({ ...prev, [fecha]: tareas }));
+        setCargandoTareas(null);
+      });
+    }
+  };
 
   /* --------------------------- Formulario ---------------------------- */
 
@@ -410,11 +444,13 @@ export default function CalendarioAgenda({
               ...new Set(eventosDe(fecha).map((e) => e.tipo)),
             ].slice(0, 3);
 
+            const conTareas = mapaDias.has(fecha);
+
             return (
               <button
                 key={fecha}
                 type="button"
-                onClick={() => setDiaSeleccionado(fecha)}
+                onClick={() => seleccionarDia(fecha)}
                 className={`flex aspect-square flex-col items-center justify-center rounded-lg text-[13px] transition-colors ${
                   sel
                     ? "bg-lima font-semibold text-neutral-950"
@@ -434,6 +470,17 @@ export default function CalendarioAgenda({
                     />
                   ))}
                 </span>
+                {/* Rayita neutra = "ese día tuvo tareas". A propósito NO
+                    cambia de color según lo completado: no es un semáforo. */}
+                <span
+                  className={`mt-0.5 h-0.5 w-3 rounded-full ${
+                    conTareas
+                      ? sel
+                        ? "bg-neutral-950/40"
+                        : "bg-white/20"
+                      : "opacity-0"
+                  }`}
+                />
               </button>
             );
           })}
@@ -443,6 +490,88 @@ export default function CalendarioAgenda({
       {/* ---------------------- Día seleccionado ---------------------- */}
       <p className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
         {diaSeleccionado === hoy ? "Hoy" : formatoLargo(diaSeleccionado)}
+      </p>
+
+      {/* --------------------------- Tareas --------------------------- */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-600">
+            Tareas
+            {infoDia && ` · Día ${NOMBRE_TIPO[infoDia.tipo]}`}
+            {infoDia?.es_roto && " · roto"}
+          </p>
+          {diaSeleccionado === hoy && infoDia && (
+            <Link href="/" className="text-xs text-lima/80 active:text-lima">
+              Abrir en Hoy
+            </Link>
+          )}
+        </div>
+
+        {!infoDia ? (
+          <p className="py-2 text-sm text-neutral-600">
+            Este día aún no tiene tareas registradas.
+          </p>
+        ) : cargandoTareas === diaSeleccionado || tareasDia === undefined ? (
+          <p className="py-2 text-sm text-neutral-600">Cargando tareas…</p>
+        ) : tareasDia.length === 0 ? (
+          <p className="py-2 text-sm text-neutral-600">Sin tareas ese día.</p>
+        ) : (
+          <GlassCard className="divide-y divide-white/5">
+            {tareasDia.map((t) => {
+              const h12 = hora12(soloHoraMinuto(t.hora));
+              return (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-2.5 px-3 py-2"
+                >
+                  <span
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
+                      t.hecha
+                        ? "border-lima/60 bg-lima/80"
+                        : "border-white/15"
+                    }`}
+                  >
+                    {t.hecha && (
+                      <Check
+                        className="h-3 w-3 text-neutral-950"
+                        strokeWidth={3}
+                      />
+                    )}
+                  </span>
+                  <span
+                    className={`h-6 w-[3px] shrink-0 rounded-full ${
+                      COLOR_CATEGORIA[t.categoria]
+                    } ${t.hecha ? "opacity-30" : ""}`}
+                  />
+                  <p
+                    className={`min-w-0 flex-1 truncate text-sm ${
+                      t.hecha
+                        ? "text-neutral-500 line-through"
+                        : "text-neutral-100"
+                    }`}
+                  >
+                    {t.titulo}
+                  </p>
+                  <span className="shrink-0 font-mono text-[12px] text-neutral-500">
+                    {h12 ? (
+                      <>
+                        {h12.texto}
+                        <span className="ml-0.5 opacity-60">{h12.icono}</span>
+                      </>
+                    ) : (
+                      "—:—"
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </GlassCard>
+        )}
+      </div>
+
+      {/* -------------------------- Eventos --------------------------- */}
+      <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-600">
+        Eventos
       </p>
 
       {creando ? (

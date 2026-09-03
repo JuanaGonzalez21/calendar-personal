@@ -313,6 +313,15 @@ export const ORDEN_TIPOS_EVENTO: TipoEvento[] = [
   "otro",
 ];
 
+/** Lo que el calendario de Agenda necesita de un día generado. */
+export type DiaCalendario = Pick<Dia, "fecha" | "tipo" | "es_roto">;
+
+/** Lo que el calendario muestra de una tarea del día (solo lectura). */
+export type TareaCalendario = Pick<
+  Tarea,
+  "id" | "titulo" | "hora" | "hecha" | "categoria" | "orden"
+>;
+
 /* ------------------------------- COLORES ------------------------------- */
 
 export const NOMBRE_TIPO: Record<TipoDia, string> = {
