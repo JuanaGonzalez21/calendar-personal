@@ -7,6 +7,11 @@ const OPCIONES = [
     titulo: "Plantillas de día",
     descripcion: "Edita las tareas base de cada tipo de día",
   },
+  {
+    href: "/ajustes/notificaciones",
+    titulo: "Notificaciones",
+    descripcion: "Avisos push en el celular",
+  },
 ];
 
 export default function Ajustes() {
