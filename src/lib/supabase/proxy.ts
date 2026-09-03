@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Rutas que se pueden ver sin haber iniciado sesión. */
-const RUTAS_PUBLICAS = ["/login", "/auth"];
+/**
+ * Rutas que se pueden ver sin haber iniciado sesión.
+ * El cron de notificaciones no trae cookies: lo llama un servicio
+ * externo y se protege solo, con el header Bearer NOTIF_CRON_SECRET.
+ */
+const RUTAS_PUBLICAS = ["/login", "/auth", "/api/notificaciones/cron"];
 
 /**
  * Refresca el token de sesión en cada request y bloquea el acceso
