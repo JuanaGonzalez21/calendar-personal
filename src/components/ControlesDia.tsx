@@ -2,16 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { cambiarTipoDia, correrDia } from "@/app/acciones";
-import { NOMBRE_TIPO, type TipoDia } from "@/lib/tipos";
-
-const TIPOS: TipoDia[] = ["A_cocina", "B_gym", "B_libre", "roto"];
+import { ORDEN_TIPOS, type NombresTipo, type TipoDia } from "@/lib/tipos";
 
 export default function ControlesDia({
   dayId,
   tipo,
+  nombres,
 }: {
   dayId: string;
   tipo: TipoDia;
+  nombres: NombresTipo;
 }) {
   const [pendiente, startTransition] = useTransition();
   const [confirmando, setConfirmando] = useState<TipoDia | null>(null);
@@ -33,7 +33,7 @@ export default function ControlesDia({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5">
-        {TIPOS.map((t) => (
+        {ORDEN_TIPOS.map((t) => (
           <button
             key={t}
             type="button"
@@ -51,7 +51,7 @@ export default function ControlesDia({
           >
             {confirmando === t && t !== tipo
               ? "¿Seguro?"
-              : NOMBRE_TIPO[t]}
+              : nombres[t]}
           </button>
         ))}
       </div>

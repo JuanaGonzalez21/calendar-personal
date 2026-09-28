@@ -10,7 +10,7 @@ export type Categoria =
 
 export type GrupoRacha = "general" | "personal";
 
-export type TipoDia = "A_cocina" | "B_gym" | "B_libre" | "roto";
+export type TipoDia = "A_cocina" | "B_gym" | "B_libre";
 
 export interface Dia {
   id: string;
@@ -46,7 +46,14 @@ export interface Settings {
   min_gym_sem: number;
   umbral_cumplida: number;
   umbral_parcial: number;
+  /** Orden de rotación de los tipos de día. Se permiten repetidos. */
+  secuencia_tipos: TipoDia[];
+  /** Fecha desde la que se cuenta el ciclo de `secuencia_tipos`. */
+  secuencia_ancla: string;
 }
+
+/** Nombre visible de cada tipo de día, según lo editó el usuario en Plantillas. */
+export type NombresTipo = Record<TipoDia, string>;
 
 /* ---------------------------- POSTULACIONES ---------------------------- */
 
@@ -198,7 +205,7 @@ export const NOMBRE_GRUPO: Record<GrupoRacha, string> = {
 
 export const ORDEN_GRUPOS: GrupoRacha[] = ["general", "personal"];
 
-export const ORDEN_TIPOS: TipoDia[] = ["A_cocina", "B_gym", "B_libre", "roto"];
+export const ORDEN_TIPOS: TipoDia[] = ["A_cocina", "B_gym", "B_libre"];
 
 /* -------------------------------- PAGOS -------------------------------- */
 
@@ -335,13 +342,6 @@ export interface EsfuerzoDia {
 }
 
 /* ------------------------------- COLORES ------------------------------- */
-
-export const NOMBRE_TIPO: Record<TipoDia, string> = {
-  A_cocina: "Cocina",
-  B_gym: "Gym",
-  B_libre: "Libre",
-  roto: "Roto",
-};
 
 /** Color de acento por categoría (clases de Tailwind). */
 export const COLOR_CATEGORIA: Record<Categoria, string> = {

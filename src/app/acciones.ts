@@ -91,7 +91,6 @@ export async function cambiarTipoDia(dayId: string, tipo: TipoDia) {
     .update({
       tipo,
       template_id: plantilla?.id ?? null,
-      es_roto: tipo === "roto",
     })
     .eq("id", dayId)
     .select()

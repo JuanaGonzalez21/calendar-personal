@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { esTituloProtegido, type CamposTareaPlantilla } from "@/lib/tipos";
+import { hoyBogota } from "@/lib/fechas";
+import {
+  esTituloProtegido,
+  ORDEN_TIPOS,
+  type CamposTareaPlantilla,
+  type TipoDia,
+} from "@/lib/tipos";
 
 /**
  * Edita campos de una tarea de plantilla. Solo afecta los días que se
@@ -134,6 +140,44 @@ export async function eliminarTarea(id: string) {
   const supabase = await createClient();
   await supabase.from("template_tasks").delete().eq("id", id);
   revalidatePath("/ajustes/plantillas");
+}
+
+/** Renombra una plantilla (el nombre visible de un tipo de día). */
+export async function actualizarNombrePlantilla(id: string, nombre: string) {
+  const limpio = nombre.trim();
+  if (!limpio) return;
+
+  const supabase = await createClient();
+  await supabase.from("templates").update({ nombre: limpio }).eq("id", id);
+
+  revalidatePath("/ajustes/plantillas");
+  revalidatePath("/");
+}
+
+/**
+ * Guarda la secuencia de rotación de tipos de día y resetea el ancla
+ * a hoy: así el primer paso de la lista siempre aplica desde hoy.
+ */
+export async function actualizarSecuencia(secuencia: TipoDia[]) {
+  const limpia = secuencia.filter((t) => ORDEN_TIPOS.includes(t));
+  if (limpia.length === 0) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("settings")
+    .update({
+      secuencia_tipos: limpia,
+      secuencia_ancla: hoyBogota(),
+    })
+    .eq("user_id", user.id);
+
+  revalidatePath("/ajustes/plantillas");
+  revalidatePath("/");
 }
 
 /** Intercambia el orden de dos tareas (subir/bajar dentro de la plantilla). */

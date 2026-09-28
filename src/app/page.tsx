@@ -1,6 +1,5 @@
 import { obtenerDia } from "@/lib/dia";
 import { formatoLargo, hoyBogota, horaBogota, hora12 } from "@/lib/fechas";
-import { NOMBRE_TIPO } from "@/lib/tipos";
 import ListaTareas from "@/components/ListaTareas";
 import ControlesDia from "@/components/ControlesDia";
 
@@ -10,7 +9,7 @@ export default async function Hoy() {
   const fecha = hoyBogota();
   const hora = horaBogota();
   const ahora = hora12(hora);
-  const { dia, tareas } = await obtenerDia(fecha);
+  const { dia, tareas, nombresTipo } = await obtenerDia(fecha);
 
   if (!dia) {
     return (
@@ -50,7 +49,7 @@ export default async function Hoy() {
           </p>
         </div>
         <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-neutral-100">
-          Día {NOMBRE_TIPO[dia.tipo]}
+          Día {nombresTipo[dia.tipo]}
         </h1>
       </header>
 
@@ -95,7 +94,7 @@ export default async function Hoy() {
       </section>
 
       <section className="mb-6">
-        <ControlesDia dayId={dia.id} tipo={dia.tipo} />
+        <ControlesDia dayId={dia.id} tipo={dia.tipo} nombres={nombresTipo} />
       </section>
 
       <ListaTareas tareas={tareas} dayId={dia.id} horaActual={hora} />

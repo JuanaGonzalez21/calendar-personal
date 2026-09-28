@@ -1,32 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
-import { diaSemana, sumarDias, tocaBellaface } from "@/lib/fechas";
-import type { Dia, Settings, Tarea, TipoDia } from "@/lib/tipos";
+import { diaSemana, diasEntre, tocaBellaface } from "@/lib/fechas";
+import type { Dia, NombresTipo, Settings, Tarea, TipoDia } from "@/lib/tipos";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
 /**
  * Decide qué tipo de día proponer cuando el día todavía no existe.
  *
- * Regla: cocinas cada 2 días. Entonces si ayer cocinaste, hoy no toca.
- * Es una sugerencia, no una imposición — siempre puedes cambiarla
- * con un toque desde la app.
+ * La secuencia (`settings.secuencia_tipos`) rota en ciclo desde
+ * `secuencia_ancla`: guardar una secuencia nueva resetea el ancla a
+ * hoy, así "hoy toca el primer paso" siempre se cumple. Es una
+ * sugerencia, no una imposición — siempre puedes cambiarla con un
+ * toque desde la app.
  */
-async function tipoSugerido(supabase: Supa, fecha: string): Promise<TipoDia> {
-  const ayer = sumarDias(fecha, -1);
+function tipoSugerido(settings: Settings | null, fecha: string): TipoDia {
+  const seq = settings?.secuencia_tipos;
+  if (!seq?.length) return "A_cocina";
 
-  const { data } = await supabase
-    .from("days")
-    .select("tipo")
-    .eq("fecha", ayer)
-    .maybeSingle();
-
-  // Si ayer fue día de cocina, hoy es día B.
-  if (data?.tipo === "A_cocina") {
-    // Domingo por defecto libre; el resto arranca como gym y tú decides.
-    return diaSemana(fecha) === 0 ? "B_libre" : "B_gym";
-  }
-
-  return "A_cocina";
+  const offset = diasEntre(settings!.secuencia_ancla, fecha);
+  const idx = ((offset % seq.length) + seq.length) % seq.length;
+  return seq[idx];
 }
 
 /**
@@ -123,6 +116,7 @@ export async function obtenerDia(fecha: string): Promise<{
   dia: Dia | null;
   tareas: Tarea[];
   settings: Settings | null;
+  nombresTipo: NombresTipo;
 }> {
   const supabase = await createClient();
 
@@ -130,13 +124,30 @@ export async function obtenerDia(fecha: string): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { dia: null, tareas: [], settings: null };
+  const nombresTipoVacio: NombresTipo = {
+    A_cocina: "Cocina",
+    B_gym: "Gym",
+    B_libre: "Libre",
+  };
+
+  if (!user) {
+    return { dia: null, tareas: [], settings: null, nombresTipo: nombresTipoVacio };
+  }
 
   const { data: settings } = await supabase
     .from("settings")
     .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  const { data: plantillasData } = await supabase
+    .from("templates")
+    .select("tipo, nombre");
+
+  const nombresTipo: NombresTipo = { ...nombresTipoVacio };
+  for (const p of plantillasData ?? []) {
+    nombresTipo[p.tipo as TipoDia] = p.nombre;
+  }
 
   let { data: dia } = await supabase
     .from("days")
@@ -145,7 +156,7 @@ export async function obtenerDia(fecha: string): Promise<{
     .maybeSingle();
 
   if (!dia) {
-    const tipo = await tipoSugerido(supabase, fecha);
+    const tipo = tipoSugerido(settings as Settings | null, fecha);
 
     const { data: plantilla } = await supabase
       .from("templates")
@@ -160,12 +171,13 @@ export async function obtenerDia(fecha: string): Promise<{
         fecha,
         tipo,
         template_id: plantilla?.id ?? null,
-        es_roto: tipo === "roto",
       })
       .select()
       .single();
 
-    if (error || !nuevo) return { dia: null, tareas: [], settings };
+    if (error || !nuevo) {
+      return { dia: null, tareas: [], settings, nombresTipo };
+    }
 
     dia = nuevo;
     await generarTareas(supabase, dia as Dia, user.id, settings);
@@ -182,5 +194,6 @@ export async function obtenerDia(fecha: string): Promise<{
     dia: dia as Dia,
     tareas: (tareas ?? []) as Tarea[],
     settings: (settings ?? null) as Settings | null,
+    nombresTipo,
   };
 }

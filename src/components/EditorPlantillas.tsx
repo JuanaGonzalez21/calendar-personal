@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import {
+  actualizarNombrePlantilla,
   actualizarTarea,
   agregarTarea,
   alternarTareaActiva,
@@ -281,6 +282,8 @@ export default function EditorPlantillas({
   const [confirmandoEliminar, setConfirmandoEliminar] = useState<string | null>(
     null,
   );
+  const [renombrando, setRenombrando] = useState<string | null>(null);
+  const [nombreForm, setNombreForm] = useState("");
 
   const cerrarForm = () => {
     setTareaAbierta(null);
@@ -292,6 +295,27 @@ export default function EditorPlantillas({
   const alternarPlantilla = (id: string) => {
     setPlantillaAbierta(plantillaAbierta === id ? null : id);
     cerrarForm();
+    setRenombrando(null);
+  };
+
+  const abrirRenombrar = (p: PlantillaConTareas) => {
+    setRenombrando(p.id);
+    setNombreForm(p.nombre);
+  };
+
+  const cancelarRenombrar = () => {
+    setRenombrando(null);
+    setNombreForm("");
+  };
+
+  const guardarNombre = (id: string) => {
+    if (guardando || !nombreForm.trim()) return;
+    setGuardando(true);
+    startTransition(async () => {
+      await actualizarNombrePlantilla(id, nombreForm.trim());
+      setGuardando(false);
+      cancelarRenombrar();
+    });
   };
 
   const abrirTarea = (t: TareaPlantilla) => {
@@ -405,23 +429,62 @@ export default function EditorPlantillas({
             key={p.id}
             className="w-full rounded-xl border border-neutral-800 bg-neutral-900"
           >
-            <button
-              type="button"
-              onClick={() => alternarPlantilla(p.id)}
-              className="flex w-full items-center gap-2 px-3 py-3 text-left"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-neutral-100">{p.nombre}</p>
-                {p.descripcion && (
-                  <p className="truncate text-xs text-neutral-500">
-                    {p.descripcion}
-                  </p>
-                )}
+            {renombrando === p.id ? (
+              <div className="flex items-center gap-2 px-3 py-3">
+                <input
+                  value={nombreForm}
+                  onChange={(e) => setNombreForm(e.target.value)}
+                  placeholder="Nombre"
+                  autoFocus
+                  className={`${input} flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={cancelarRenombrar}
+                  className="shrink-0 rounded-lg border border-neutral-800 px-3 py-2 text-xs text-neutral-400 active:bg-neutral-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => guardarNombre(p.id)}
+                  disabled={guardando || !nombreForm.trim()}
+                  className="shrink-0 rounded-lg bg-lima px-3 py-2 text-xs font-medium text-neutral-950 disabled:opacity-40"
+                >
+                  Guardar
+                </button>
               </div>
-              <span className="shrink-0 font-mono text-xs text-neutral-600">
-                {activas} {activas === 1 ? "tarea" : "tareas"}
-              </span>
-            </button>
+            ) : (
+              <div className="flex w-full items-center gap-2 px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => alternarPlantilla(p.id)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-neutral-100">
+                      {p.nombre}
+                    </p>
+                    {p.descripcion && (
+                      <p className="truncate text-xs text-neutral-500">
+                        {p.descripcion}
+                      </p>
+                    )}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => abrirRenombrar(p)}
+                  aria-label="Renombrar"
+                  className="shrink-0 text-neutral-600 active:text-neutral-300"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <span className="shrink-0 font-mono text-xs text-neutral-600">
+                  {activas} {activas === 1 ? "tarea" : "tareas"}
+                </span>
+              </div>
+            )}
 
             {expandida && (
               <div className="space-y-1.5 border-t border-neutral-800 px-2 py-2">
